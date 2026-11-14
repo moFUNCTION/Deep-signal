@@ -45,7 +45,7 @@ const SIMULATOR_STEPS: Step[] = [
     target: '[data-tour="sim-open-hud"]',
     title: 'Live Sync to Astronaut HUD',
     content:
-      'All changes broadcast across ports immediately to the Crew Health HUD on localhost:5173.',
+      'Opens the Crew Health HUD (aura-astronaut.vercel.app) so you can inspect biometric updates side by side.',
     placement: 'bottom',
     isFixed: true,
     skipScroll: true,

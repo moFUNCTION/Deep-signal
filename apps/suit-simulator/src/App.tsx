@@ -164,9 +164,9 @@ export const AppContent: React.FC = () => {
 
             <a
               data-tour="sim-open-hud"
-              href="http://localhost:5173"
+              href="https://aura-astronaut.vercel.app/"
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="px-3 py-1.5 rounded-btn text-xs font-semibold font-body bg-sky hover:bg-sky-deep text-white transition-colors inline-flex items-center gap-1.5"
             >
               <span>Open Astronaut HUD</span>
