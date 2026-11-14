@@ -1,15 +1,23 @@
 import { create } from 'zustand';
-import { get, set as idbSet } from 'idb-keyval';
-import type { DistanceCommsMode } from '@aura/medical-engine';
+import { get as idbGet, set as idbSet } from 'idb-keyval';
+import type { DistanceCommsMode, VitalReadingInput } from '@aura/medical-engine';
 import {
   DtnCommsService,
   LIGHT_TIME_DELAY_SECONDS,
-  localBus,
+  TelemetryService,
+  broadcastBusMessage,
   type EarthTransmissionRecord,
 } from '@aura/appwrite-client';
 import { useAuthStore } from './useAuthStore';
 
 const IDB_KEY = 'aura_dtn_offline_packets';
+const IDB_VITALS_KEY = 'aura_dtn_offline_vitals';
+
+export interface LocalDtnRecord extends EarthTransmissionRecord {
+  $id: string;
+  remaining_seconds: number;
+  $createdAt?: string;
+}
 
 interface EnqueueDossierPayload {
   alertId: string;
@@ -20,30 +28,36 @@ interface EnqueueDossierPayload {
 
 export interface OfflineSyncState {
   commsMode: DistanceCommsMode;
-  offlineQueue: EarthTransmissionRecord[];
-  activeTransmissions: EarthTransmissionRecord[];
-  completedTransmissions: EarthTransmissionRecord[];
+  offlineQueue: LocalDtnRecord[];
+  offlineVitals: VitalReadingInput[];
+  activeTransmissions: LocalDtnRecord[];
+  completedTransmissions: LocalDtnRecord[];
   isInitialized: boolean;
 
   // Actions
   initializeQueue: () => Promise<void>;
   setCommsMode: (mode: DistanceCommsMode) => void;
-  enqueueMedicalDossier: (payload: EnqueueDossierPayload) => Promise<EarthTransmissionRecord>;
+  queueOfflineVital: (vital: VitalReadingInput) => Promise<void>;
+  enqueueMedicalDossier: (payload: EnqueueDossierPayload) => Promise<LocalDtnRecord>;
   tickTransmissions: () => void;
   flushOfflineQueue: () => Promise<void>;
   clearCompleted: () => void;
 }
 
 export const useOfflineSyncStore = create<OfflineSyncState>((set, get) => ({
-  commsMode: 'EARLY_ORBIT_ADAPTATION' as any ? 'ISS_REALTIME' : 'ISS_REALTIME',
+  commsMode: 'ISS_REALTIME',
   offlineQueue: [],
+  offlineVitals: [],
   activeTransmissions: [],
   completedTransmissions: [],
   isInitialized: false,
 
   initializeQueue: async () => {
     try {
-      const persisted = await get<EarthTransmissionRecord[]>(IDB_KEY);
+      const [persisted, persistedVitals] = await Promise.all([
+        idbGet(IDB_KEY) as Promise<LocalDtnRecord[] | undefined>,
+        idbGet(IDB_VITALS_KEY) as Promise<VitalReadingInput[] | undefined>,
+      ]);
       if (persisted && Array.isArray(persisted)) {
         const offlineQueue = persisted.filter((p) => p.status === 'queued_offline');
         const activeTransmissions = persisted.filter((p) => p.status === 'transmitting');
@@ -51,11 +65,15 @@ export const useOfflineSyncStore = create<OfflineSyncState>((set, get) => ({
 
         set({
           offlineQueue,
+          offlineVitals: Array.isArray(persistedVitals) ? persistedVitals : [],
           activeTransmissions,
           completedTransmissions,
           isInitialized: true,
         });
         return;
+      }
+      if (Array.isArray(persistedVitals)) {
+        set({ offlineVitals: persistedVitals });
       }
     } catch (err) {
       console.warn('idb-keyval reading failed, using in-memory state', err);
@@ -64,50 +82,50 @@ export const useOfflineSyncStore = create<OfflineSyncState>((set, get) => ({
   },
 
   setCommsMode: (mode: DistanceCommsMode) => {
+    if (get().commsMode === mode) return;
     set({ commsMode: mode });
 
-    // If switching out of SOLAR_BLACKOUT, activate queued transmissions
+    // If switching out of SOLAR_BLACKOUT, flush offline dossiers & idempotent edge vitals
     if (mode !== 'SOLAR_BLACKOUT') {
-      const delay = LIGHT_TIME_DELAY_SECONDS[mode] ?? 2;
-      const { offlineQueue, activeTransmissions } = get();
-
-      if (offlineQueue.length > 0) {
-        const newlyActive: EarthTransmissionRecord[] = offlineQueue.map((item) => ({
-          ...item,
-          distance_mode: mode,
-          delay_seconds: delay,
-          remaining_seconds: delay,
-          status: 'transmitting',
-        }));
-
-        const nextActive = [...activeTransmissions, ...newlyActive];
-        set({
-          offlineQueue: [],
-          activeTransmissions: nextActive,
-        });
-
-        // Persist to IDB
-        const all = [...nextActive, ...get().completedTransmissions];
-        idbSet(IDB_KEY, all).catch(() => {});
-      }
+      void get().flushOfflineQueue();
     }
 
-    if (localBus) {
-      localBus.postMessage({
-        type: 'COMMS_MODE_UPDATED',
-        payload: { distanceMode: mode },
-      });
+    broadcastBusMessage({
+      type: 'COMMS_MODE_UPDATED',
+      payload: { commsMode: mode },
+    });
+  },
+
+  queueOfflineVital: async (vital: VitalReadingInput) => {
+    const existing = get().offlineVitals;
+    if (vital.$id && existing.some((v) => v.$id === vital.$id)) {
+      return;
     }
+    const buffered: VitalReadingInput = {
+      ...vital,
+      ingestion_source: 'OFFLINE_SYNC_FLUSH',
+    };
+    const nextVitals = [buffered, ...existing].slice(0, 30);
+    set({ offlineVitals: nextVitals });
+    await idbSet(IDB_VITALS_KEY, nextVitals).catch(() => {});
   },
 
   enqueueMedicalDossier: async ({ alertId, telemetryJson, reportBlob, fileName }) => {
-    const commsMode = get().commsMode;
+    const state = get();
+    const existing =
+      state.offlineQueue.find((q) => q.alert_id === alertId) ||
+      state.activeTransmissions.find((q) => q.alert_id === alertId);
+    if (existing) {
+      return existing;
+    }
+
+    const commsMode = state.commsMode;
     const astronautId = useAuthStore.getState().profile.astronautId || 'AST-CDR-01';
     const isBlackout = commsMode === 'SOLAR_BLACKOUT';
     const delay = LIGHT_TIME_DELAY_SECONDS[commsMode] ?? 2;
 
     const id = `dtn_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const record: EarthTransmissionRecord = {
+    const record: LocalDtnRecord = {
       $id: id,
       astronaut_id: astronautId,
       alert_id: alertId,
@@ -117,7 +135,7 @@ export const useOfflineSyncStore = create<OfflineSyncState>((set, get) => ({
       status: isBlackout ? 'queued_offline' : 'transmitting',
       report_file_id: fileName || null,
       telemetry_json: telemetryJson,
-      createdAt: new Date().toISOString(),
+      $createdAt: new Date().toISOString(),
     };
 
     if (isBlackout) {
@@ -148,20 +166,20 @@ export const useOfflineSyncStore = create<OfflineSyncState>((set, get) => ({
     }
 
     let changed = false;
-    const remainingActive: EarthTransmissionRecord[] = [];
-    const newlyCompleted: EarthTransmissionRecord[] = [];
+    const remainingActive: LocalDtnRecord[] = [];
+    const newlyCompleted: LocalDtnRecord[] = [];
 
     for (const tx of activeTransmissions) {
       const nextRemaining = tx.remaining_seconds - 1;
       if (nextRemaining <= 0) {
         changed = true;
-        const finished: EarthTransmissionRecord = {
+        const finished: LocalDtnRecord = {
           ...tx,
           remaining_seconds: 0,
           status: 'received_by_earth',
         };
         newlyCompleted.push(finished);
-        DtnCommsService.markReceivedByEarth(tx.$id).catch(() => {});
+        DtnCommsService.markReceivedByEarth(tx.$id || '').catch(() => {});
       } else {
         remainingActive.push({
           ...tx,
@@ -183,13 +201,13 @@ export const useOfflineSyncStore = create<OfflineSyncState>((set, get) => ({
   },
 
   flushOfflineQueue: async () => {
-    const { offlineQueue, commsMode, activeTransmissions, completedTransmissions } = get();
-    if (offlineQueue.length === 0 || commsMode === 'SOLAR_BLACKOUT') {
+    const { offlineQueue, offlineVitals, commsMode, activeTransmissions, completedTransmissions } = get();
+    if ((offlineQueue.length === 0 && offlineVitals.length === 0) || commsMode === 'SOLAR_BLACKOUT') {
       return;
     }
 
     const delay = LIGHT_TIME_DELAY_SECONDS[commsMode] ?? 2;
-    const movedToActive: EarthTransmissionRecord[] = offlineQueue.map((tx) => ({
+    const movedToActive: LocalDtnRecord[] = offlineQueue.map((tx) => ({
       ...tx,
       distance_mode: commsMode,
       delay_seconds: delay,
@@ -200,11 +218,23 @@ export const useOfflineSyncStore = create<OfflineSyncState>((set, get) => ({
     const nextActive = [...activeTransmissions, ...movedToActive];
     set({
       offlineQueue: [],
+      offlineVitals: [],
       activeTransmissions: nextActive,
     });
 
     const all = [...nextActive, ...completedTransmissions];
     await idbSet(IDB_KEY, all).catch(() => {});
+    await idbSet(IDB_VITALS_KEY, []).catch(() => {});
+
+    for (const vital of offlineVitals) {
+      TelemetryService.ingestVitalReading({
+        ...vital,
+        ingestion_source: 'OFFLINE_SYNC_FLUSH',
+      }).catch(() => {});
+    }
+    for (const tx of movedToActive) {
+      DtnCommsService.createEarthTransmission(tx).catch(() => {});
+    }
   },
 
   clearCompleted: () => {

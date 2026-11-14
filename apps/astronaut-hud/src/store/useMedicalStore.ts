@@ -14,13 +14,15 @@ import {
 import {
   CountermeasureService,
   DEFAULT_DAILY_MISSIONS,
-  localBus,
+  broadcastBusMessage,
   TelemetryService,
   TriageService,
   type DailyMissionDocument,
   type PersistedAlertDocument,
 } from '@aura/appwrite-client';
+import { generateClinicalDossierPdf } from '../services/PdfReportGenerator';
 import { useAuthStore } from './useAuthStore';
+import { useOfflineSyncStore } from './useOfflineSyncStore';
 
 export interface MedicalState {
   currentVital: VitalReadingInput;
@@ -52,11 +54,11 @@ export interface MedicalState {
 const DEFAULT_VITAL: VitalReadingInput = {
   astronaut_id: 'AST-CDR-01',
   mission_phase: 'EARLY_ORBIT_ADAPTATION',
-  heart_rate: 68,
-  bp_systolic: 120,
-  bp_diastolic: 78,
-  blood_glucose: 94,
-  body_temp: 36.6,
+  heart_rate: 62,
+  bp_systolic: 122,
+  bp_diastolic: 68,
+  blood_glucose: 95,
+  body_temp: 36.8,
   spo2: 98,
   sleep_hours: 7.5,
   mood_score: 9,
@@ -132,7 +134,7 @@ export const useMedicalStore = create<MedicalState>((set, get) => {
             : get().currentVital;
 
         const effectiveHistory =
-          storedHistory.length > 0 ? storedHistory : get().vitalHistory;
+          storedHistory.length > 0 ? (storedHistory as any) : get().vitalHistory;
 
         const profile = useAuthStore.getState().profile;
         const evals = evaluateAllMetrics(
@@ -149,13 +151,18 @@ export const useMedicalStore = create<MedicalState>((set, get) => {
           moodScore: currentVital.mood_score,
         });
 
+        const effectiveAlert =
+          activeAlert && activeAlert.severity !== 'green' && activeAlert.affected_system !== 'nominal'
+            ? activeAlert
+            : null;
+
         set({
           dailyMissions: missions,
           currentVital,
           vitalHistory: effectiveHistory,
-          activeAlert,
+          activeAlert: effectiveAlert,
           readiness,
-          selectedSystem: activeAlert && activeAlert.severity !== 'green' ? activeAlert.affected_system : null,
+          selectedSystem: effectiveAlert ? effectiveAlert.affected_system : null,
           isInitialized: true,
         });
       } catch (err) {
@@ -200,17 +207,50 @@ export const useMedicalStore = create<MedicalState>((set, get) => {
         moodScore: vitalDoc.mood_score,
       });
 
-      // Update ring buffer (max 30 items)
+      // Update ring buffer (max 30 items, deduplicated by vital $id)
       const prevHistory = get().vitalHistory;
-      const newHistory = [...prevHistory.slice(-29), vitalDoc];
+      const alreadyRecorded = Boolean(
+        vitalDoc.$id && prevHistory.some((h) => h.$id === vitalDoc.$id),
+      );
+      const newHistory = alreadyRecorded
+        ? prevHistory.map((h) => (h.$id === vitalDoc.$id ? vitalDoc : h))
+        : [...prevHistory.slice(-29), vitalDoc];
 
       set({
         currentVital: vitalDoc,
         vitalHistory: newHistory,
         activeAlert: effectiveAlert,
         readiness,
-        selectedSystem: effectiveAlert ? effectiveAlert.affected_system : get().selectedSystem,
+        selectedSystem: effectiveAlert ? effectiveAlert.affected_system : null,
       });
+
+      // Autonomous Earth DTN / Offline Blackout Queueing when notify_earth is flagged
+      const offlineSync = useOfflineSyncStore.getState();
+      if (offlineSync.commsMode === 'SOLAR_BLACKOUT') {
+        void offlineSync.queueOfflineVital({
+          ...vitalDoc,
+          edge_alert_id: effectiveAlert?.$id || vitalDoc.edge_alert_id || null,
+        });
+      }
+      if (effectiveAlert?.notify_earth) {
+        const alertKey =
+          (effectiveAlert as PersistedAlertDocument).$id ||
+          `${effectiveAlert.diagnosis_code}_${vitalDoc.$id || Date.now()}`;
+        const { blob, fileName } = generateClinicalDossierPdf(
+          profile,
+          vitalDoc,
+          {
+            ...effectiveAlert,
+            guide_file_id: effectiveAlert.guide_file_id ?? null,
+          },
+        );
+        void offlineSync.enqueueMedicalDossier({
+          alertId: alertKey,
+          telemetryJson: JSON.stringify({ vital: vitalDoc, alert: effectiveAlert }),
+          reportBlob: blob,
+          fileName,
+        });
+      }
     },
 
     toggleCountermeasure: async (taskId: string, isCompleted: boolean) => {
@@ -310,12 +350,10 @@ export const useMedicalStore = create<MedicalState>((set, get) => {
         readiness,
       });
 
-      if (localBus) {
-        localBus.postMessage({
-          type: 'ALERT_RESOLVED',
-          payload: { alertId: activeAlert ? (activeAlert as any).$id || 'local_alert' : 'all' },
-        });
-      }
+      broadcastBusMessage({
+        type: 'ALERT_RESOLVED',
+        payload: { alertId: activeAlert ? (activeAlert as any).$id || 'local_alert' : 'all' },
+      });
     },
 
     setSelectedSystem: (sys) => set({ selectedSystem: sys }),

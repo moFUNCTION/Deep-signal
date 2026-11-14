@@ -112,6 +112,8 @@ export const LessonCard: React.FC<LessonCardProps> = ({
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px',
           marginBottom: '16px',
         }}
       >
@@ -120,6 +122,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
           style={{
             width: '64px',
             height: '64px',
+            flexShrink: 0,
             borderRadius: '16px',
             backgroundColor: isCompleted
               ? SKYLEARN_COLORS.leafSoft
@@ -137,12 +140,22 @@ export const LessonCard: React.FC<LessonCardProps> = ({
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            flexWrap: 'wrap',
+            gap: '6px',
+            flex: '1 1 auto',
+            minWidth: 0,
+          }}
+        >
           {categoryTag && (
             <span
               style={{
                 fontFamily: SKYLEARN_TYPOGRAPHY.fonts.body,
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 600,
                 color: SKYLEARN_COLORS.inkMuted,
                 backgroundColor: SKYLEARN_COLORS.surfaceSunken,
@@ -150,6 +163,8 @@ export const LessonCard: React.FC<LessonCardProps> = ({
                 padding: '2px 10px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.02em',
+                maxWidth: '100%',
+                whiteSpace: 'nowrap',
               }}
             >
               {categoryTag}

@@ -57,7 +57,7 @@ export class CountermeasureService {
     astronautId: string = 'AST-CDR-01',
     options?: { isOfflineMode?: boolean }
   ): Promise<DailyMissionDocument[]> {
-    if (!options?.isOfflineMode) {
+    if (DB_CONFIG.IS_CONFIGURED && !options?.isOfflineMode) {
       try {
         const response = await databases.listDocuments(
           DB_CONFIG.DATABASE_ID,
@@ -132,18 +132,20 @@ export class CountermeasureService {
     });
 
     // 3. Appwrite Cloud Document Update
-    try {
-      await databases.updateDocument(
-        DB_CONFIG.DATABASE_ID,
-        DB_CONFIG.COLLECTIONS.DAILY_MISSIONS,
-        updatedTask.$id,
-        {
-          is_completed: updatedTask.is_completed,
-          streak_days: updatedTask.streak_days,
-        }
-      );
-    } catch {
-      // Offline fallback: update queued locally
+    if (DB_CONFIG.IS_CONFIGURED) {
+      try {
+        await databases.updateDocument(
+          DB_CONFIG.DATABASE_ID,
+          DB_CONFIG.COLLECTIONS.DAILY_MISSIONS,
+          updatedTask.$id,
+          {
+            is_completed: updatedTask.is_completed,
+            streak_days: updatedTask.streak_days,
+          }
+        );
+      } catch {
+        // Offline fallback: update queued locally
+      }
     }
 
     return updatedTask;
@@ -164,14 +166,16 @@ export class CountermeasureService {
 
     // 2. Appwrite Realtime subscription
     let realtimeUnsub = () => {};
-    try {
-      const channel = `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.DAILY_MISSIONS}.documents`;
-      realtimeUnsub = appwriteClient.subscribe(channel, async () => {
-        const fresh = await this.listDailyMissions();
-        callback(fresh);
-      });
-    } catch {
-      // Offline fallback
+    if (DB_CONFIG.IS_CONFIGURED) {
+      try {
+        const channel = `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.DAILY_MISSIONS}.documents`;
+        realtimeUnsub = appwriteClient.subscribe(channel, async () => {
+          const fresh = await this.listDailyMissions();
+          callback(fresh);
+        });
+      } catch {
+        // Offline fallback
+      }
     }
 
     return () => {

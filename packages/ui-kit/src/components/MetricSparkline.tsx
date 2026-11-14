@@ -15,6 +15,7 @@ export interface MetricSparklineProps extends React.HTMLAttributes<HTMLDivElemen
   severity?: 'green' | 'yellow' | 'red' | 'nominal' | 'caution' | 'critical';
   width?: number | string;
   height?: number;
+  hideHeader?: boolean;
   className?: string;
 }
 
@@ -27,6 +28,7 @@ export const MetricSparkline: React.FC<MetricSparklineProps> = ({
   severity = 'green',
   width = '100%',
   height = 54,
+  hideHeader = false,
   className = '',
   style,
   ...rest
@@ -90,86 +92,90 @@ export const MetricSparkline: React.FC<MetricSparklineProps> = ({
       }}
       {...rest}
     >
-      {/* Header: Label, Value & Z-Score Pill */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'baseline',
-          justifyContent: 'space-between',
-          gap: '8px',
-        }}
-      >
-        <span
-          style={{
-            fontFamily: SKYLEARN_TYPOGRAPHY.fonts.body,
-            fontSize: '13px',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: highContrast ? SKYLEARN_COLORS.inkMuted : SKYLEARN_COLORS.inkMuted,
-          }}
-        >
-          {metricLabel}
-        </span>
-
-        {typeof zScore === 'number' && (
-          <span
+      {!hideHeader && (
+        <>
+          {/* Header: Label, Value & Z-Score Pill */}
+          <div
             style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              gap: '8px',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: SKYLEARN_TYPOGRAPHY.fonts.body,
+                fontSize: '13px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                color: highContrast ? SKYLEARN_COLORS.inkMuted : SKYLEARN_COLORS.inkMuted,
+              }}
+            >
+              {metricLabel}
+            </span>
+
+            {typeof zScore === 'number' && (
+              <span
+                style={{
+                  fontFamily: SKYLEARN_TYPOGRAPHY.fonts.mono,
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '1px 6px',
+                  borderRadius: SKYLEARN_RADII.full,
+                  backgroundColor: isCritical
+                    ? SKYLEARN_COLORS.coralSoft
+                    : isCaution
+                    ? '#FEF3C7'
+                    : SKYLEARN_COLORS.leafSoft,
+                  color: isCritical
+                    ? '#B91C1C'
+                    : isCaution
+                    ? SKYLEARN_COLORS.sunDeep
+                    : SKYLEARN_COLORS.leafDeep,
+                  border: `1px solid ${strokeColor}`,
+                }}
+              >
+                {zScore >= 0 ? `+${zScore.toFixed(1)}σ` : `${zScore.toFixed(1)}σ`}
+              </span>
+            )}
+          </div>
+
+          {/* Numerical Readout */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: '4px',
               fontFamily: SKYLEARN_TYPOGRAPHY.fonts.mono,
-              fontSize: '11px',
-              fontWeight: 700,
-              padding: '1px 6px',
-              borderRadius: SKYLEARN_RADII.full,
-              backgroundColor: isCritical
-                ? SKYLEARN_COLORS.coralSoft
-                : isCaution
-                ? '#FEF3C7'
-                : SKYLEARN_COLORS.leafSoft,
-              color: isCritical
-                ? '#B91C1C'
-                : isCaution
-                ? SKYLEARN_COLORS.sunDeep
-                : SKYLEARN_COLORS.leafDeep,
-              border: `1px solid ${strokeColor}`,
             }}
           >
-            {zScore >= 0 ? `+${zScore.toFixed(1)}σ` : `${zScore.toFixed(1)}σ`}
-          </span>
-        )}
-      </div>
-
-      {/* Numerical Readout */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'baseline',
-          gap: '4px',
-          fontFamily: SKYLEARN_TYPOGRAPHY.fonts.mono,
-        }}
-      >
-        <span
-          style={{
-            fontSize: '24px',
-            lineHeight: '1',
-            fontWeight: 700,
-            color: highContrast ? SKYLEARN_COLORS.ink : SKYLEARN_COLORS.ink,
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {currentValue}
-        </span>
-        {unit && (
-          <span
-            style={{
-              fontSize: '13px',
-              color: SKYLEARN_COLORS.inkSubtle,
-              fontWeight: 500,
-            }}
-          >
-            {unit}
-          </span>
-        )}
-      </div>
+            <span
+              style={{
+                fontSize: '24px',
+                lineHeight: '1',
+                fontWeight: 700,
+                color: highContrast ? SKYLEARN_COLORS.ink : SKYLEARN_COLORS.ink,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {currentValue}
+            </span>
+            {unit && (
+              <span
+                style={{
+                  fontSize: '13px',
+                  color: SKYLEARN_COLORS.inkSubtle,
+                  fontWeight: 500,
+                }}
+              >
+                {unit}
+              </span>
+            )}
+          </div>
+        </>
+      )}
 
       {/* SVG Sparkline Graph */}
       <div

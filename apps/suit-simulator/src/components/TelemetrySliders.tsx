@@ -375,6 +375,9 @@ export const TelemetrySliders: React.FC<TelemetrySlidersProps> = ({
               {/* Slider & Value Row */}
               <div className="flex items-center gap-4 my-2">
                 <input
+                  id={`telemetry-slider-${metric.key}`}
+                  name={`telemetry-slider-${metric.key}`}
+                  aria-label={`${metric.label} (${metric.unit})`}
                   type="range"
                   min={metric.min}
                   max={metric.max}

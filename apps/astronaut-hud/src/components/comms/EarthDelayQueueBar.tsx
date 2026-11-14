@@ -1,58 +1,86 @@
 import React from 'react';
-import { ProgressBar, StatusBadge } from '@aura/ui-kit';
+import {
+  CheckCircle2,
+  HardDrive,
+  Radio,
+  RefreshCw,
+  Send,
+  Trash2,
+  WifiOff,
+} from 'lucide-react';
+import { HudCard, ProgressBar, StatusBadge } from '@aura/ui-kit';
 import { useOfflineSyncStore } from '../../store/useOfflineSyncStore';
 
 export const EarthDelayQueueBar: React.FC = () => {
   const commsMode = useOfflineSyncStore((s) => s.commsMode);
   const offlineQueue = useOfflineSyncStore((s) => s.offlineQueue);
+  const offlineVitals = useOfflineSyncStore((s) => s.offlineVitals);
   const activeTransmissions = useOfflineSyncStore((s) => s.activeTransmissions);
   const completedTransmissions = useOfflineSyncStore((s) => s.completedTransmissions);
   const flushOfflineQueue = useOfflineSyncStore((s) => s.flushOfflineQueue);
   const clearCompleted = useOfflineSyncStore((s) => s.clearCompleted);
 
   const isBlackout = commsMode === 'SOLAR_BLACKOUT';
-  const hasPending = offlineQueue.length > 0 || activeTransmissions.length > 0;
+  const totalQueued = offlineQueue.length + offlineVitals.length;
+  const hasPending = totalQueued > 0 || activeTransmissions.length > 0;
 
   return (
-    <div className="w-full bg-slate-900 border border-slate-800 rounded-card p-3.5 text-white flex flex-col gap-2.5">
+    <HudCard padding="20px" className="w-full flex flex-col gap-3">
       {/* Top Status Row */}
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-          <span className="font-display font-bold uppercase tracking-wider text-cyan-400">
-            DTN Space-to-Earth Telemetry Relay Bus
-          </span>
-          <span className="font-mono text-slate-400">
-            Mode: <strong className="text-white">{commsMode}</strong>
-          </span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div
+            className={`w-9 h-9 rounded-btn flex items-center justify-center shrink-0 ${
+              isBlackout
+                ? 'bg-coral-soft text-coral'
+                : 'bg-sky-soft text-sky-deep'
+            }`}
+          >
+            {isBlackout ? <WifiOff className="w-4 h-4" /> : <Radio className="w-4 h-4" />}
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-display font-bold text-sm text-ink">
+                DTN Space-to-Earth Telemetry Queue
+              </h3>
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-pill bg-surface-sunken border border-outline text-ink-muted">
+                {commsMode.replace(/_/g, ' ')}
+              </span>
+            </div>
+            <p className="text-xs text-ink-muted font-body">
+              {isBlackout
+                ? 'Solar blackout active — edge-triaged vitals and PDF dossiers buffer locally in IndexedDB with idempotent edge IDs.'
+                : 'Delay/Disruption-Tolerant Networking active with automatic light-time propagation tracking.'}
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {isBlackout ? (
-            <span className="px-2.5 py-0.5 rounded-pill bg-coral-soft border border-coral text-coral font-mono font-bold text-[11px] animate-pulse">
-              ⚡ SOLAR RF BLACKOUT ACTIVE (QUEUING TO LOCAL IDB)
-            </span>
-          ) : (
-            <span className="px-2.5 py-0.5 rounded-pill bg-leaf-soft border border-leaf text-leaf-deep font-mono font-bold text-[11px]">
-              ✓ RF CARRIER LOCK ESTABLISHED
-            </span>
-          )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <StatusBadge
+            severity={isBlackout ? 'red' : 'green'}
+            label={isBlackout ? 'RF BLACKOUT · LOCAL BUFFER' : 'RF CARRIER LOCK'}
+            size="sm"
+          />
 
-          {offlineQueue.length > 0 && !isBlackout && (
+          {totalQueued > 0 && !isBlackout && (
             <button
+              type="button"
               onClick={() => flushOfflineQueue()}
-              className="px-2.5 py-0.5 rounded-pill bg-sky hover:bg-sky-deep text-white font-mono font-bold text-[11px] transition-colors"
+              className="px-3 py-1.5 rounded-btn bg-sky hover:bg-sky-deep text-white font-body font-semibold text-xs inline-flex items-center gap-1.5 transition-colors"
             >
-              Flush {offlineQueue.length} Queued Packets ⇪
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Flush {totalQueued} Buffered Packet{totalQueued > 1 ? 's' : ''}</span>
             </button>
           )}
 
           {completedTransmissions.length > 0 && (
             <button
+              type="button"
               onClick={() => clearCompleted()}
-              className="text-[11px] text-slate-400 hover:text-slate-200 underline font-mono"
+              className="px-2.5 py-1 rounded-btn text-xs text-ink-muted hover:text-ink hover:bg-surface-sunken font-body inline-flex items-center gap-1 transition-colors"
             >
-              Clear Log ({completedTransmissions.length})
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear Log ({completedTransmissions.length})</span>
             </button>
           )}
         </div>
@@ -69,62 +97,71 @@ export const EarthDelayQueueBar: React.FC = () => {
             return (
               <div
                 key={tx.$id}
-                className="p-2.5 rounded-btn bg-slate-800/90 border border-slate-700 flex flex-col gap-1.5"
+                className="p-3 rounded-btn bg-surface border border-outline flex flex-col gap-2"
               >
-                <div className="flex items-center justify-between text-xs font-mono">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
                   <div className="flex items-center gap-2">
-                    <span className="text-cyan-300 font-bold">📡 Packet {tx.$id}</span>
-                    <span className="text-slate-400">({tx.distance_mode})</span>
+                    <Send className="w-3.5 h-3.5 text-sky-deep" />
+                    <span className="text-ink font-bold">{tx.$id}</span>
+                    <span className="text-ink-subtle">({tx.distance_mode})</span>
                   </div>
-                  <span className="text-sun font-bold animate-pulse">
-                    Light-Time In Flight: {tx.remaining_seconds}s remaining ({Math.round(pct)}%)
+                  <span className="text-sky-deep font-bold">
+                    In Flight: {tx.remaining_seconds}s remaining ({Math.round(pct)}%)
                   </span>
                 </div>
-                <ProgressBar progressPercent={pct} height={6} />
+                <ProgressBar value={pct} height={6} />
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Offline Queued Packets in Blackout */}
-      {isBlackout && offlineQueue.length > 0 && (
-        <div className="p-2.5 rounded-btn bg-coral/10 border border-coral/40 flex items-center justify-between text-xs font-mono">
-          <span className="text-coral">
-            📦 {offlineQueue.length} Clinical PDF Dossier(s) Safely Buffered in IndexedDB
-          </span>
-          <span className="text-slate-400">
-            Will automatically flush upon radio line-of-sight acquisition
+      {/* Offline Buffered Packets during Blackout */}
+      {totalQueued > 0 && (
+        <div className="p-3 rounded-btn bg-coral-soft/35 border border-coral/40 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 text-ink font-body font-semibold">
+            <HardDrive className="w-4 h-4 text-coral shrink-0" />
+            <span>
+              {offlineQueue.length} Clinical Dossier(s) &amp; {offlineVitals.length} Edge-Triaged Vital Frame(s) Buffered in IndexedDB
+            </span>
+          </div>
+          <span className="font-mono text-[11px] text-ink-muted">
+            {isBlackout
+              ? 'Awaiting line-of-sight acquisition for OFFLINE_SYNC_FLUSH'
+              : 'Ready to flush cleanly via idempotent edge_alert_id'}
           </span>
         </div>
       )}
 
-      {/* Earth Received Confirmations */}
+      {/* Earth DSN Acknowledgments */}
       {completedTransmissions.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap pt-1 text-[11px] font-mono text-slate-300">
-          <span className="text-leaf font-bold">Earth DSN Acknowledgments:</span>
-          {completedTransmissions.slice(0, 3).map((tx) => (
+        <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-outline/60 text-[11px] font-mono">
+          <span className="text-leaf-deep font-bold inline-flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Earth DSN Acknowledgments:
+          </span>
+          {completedTransmissions.slice(0, 4).map((tx) => (
             <span
               key={tx.$id}
-              className="px-2 py-0.5 rounded bg-leaf/20 border border-leaf/40 text-leaf"
+              className="px-2 py-0.5 rounded-pill bg-leaf-soft/70 border border-leaf/40 text-leaf-deep"
             >
-              ✓ {tx.$id} ({new Date(tx.createdAt).toLocaleTimeString()})
+              {tx.$id} · {new Date(tx.$createdAt || Date.now()).toLocaleTimeString()}
             </span>
           ))}
-          {completedTransmissions.length > 3 && (
-            <span className="text-slate-400">
-              +{completedTransmissions.length - 3} more received
+          {completedTransmissions.length > 4 && (
+            <span className="text-ink-muted">
+              +{completedTransmissions.length - 4} earlier
             </span>
           )}
         </div>
       )}
 
       {!hasPending && completedTransmissions.length === 0 && (
-        <div className="text-[11px] font-mono text-slate-400 flex items-center justify-between">
-          <span>DTN Queue Idle — All medical telemetry frames synchronized.</span>
-          <span>Buffer: IndexedDB [aura_dtn_offline_packets]</span>
+        <div className="pt-2 border-t border-outline/60 text-xs font-mono text-ink-subtle flex flex-wrap items-center justify-between gap-2">
+          <span>Queue idle — all medical dossiers and telemetry frames synchronized.</span>
+          <span>Storage: IndexedDB [aura_dtn_offline_packets]</span>
         </div>
       )}
-    </div>
+    </HudCard>
   );
 };

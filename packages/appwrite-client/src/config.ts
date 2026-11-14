@@ -78,33 +78,26 @@ export const LIGHT_TIME_DELAY_SECONDS: Record<DistanceCommsMode, number | null> 
   SOLAR_BLACKOUT: null,
 };
 
+function readEnv(key: string): string | undefined {
+  const metaEnv = typeof import.meta !== 'undefined' ? (import.meta as any).env : undefined;
+  const proc = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
+  const win = typeof window !== 'undefined' ? (window as any) : undefined;
+  return metaEnv?.[key] || proc?.env?.[key] || win?.__ENV__?.[key];
+}
+
 export const DB_CONFIG = {
   get ENDPOINT(): string {
-    const proc = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
-    const win = typeof window !== 'undefined' ? (window as any) : undefined;
-    return (
-      proc?.env?.VITE_APPWRITE_ENDPOINT ||
-      win?.__ENV__?.VITE_APPWRITE_ENDPOINT ||
-      'https://cloud.appwrite.io/v1'
-    );
+    return readEnv('VITE_APPWRITE_ENDPOINT') || 'https://cloud.appwrite.io/v1';
   },
   get PROJECT_ID(): string {
-    const proc = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
-    const win = typeof window !== 'undefined' ? (window as any) : undefined;
-    return (
-      proc?.env?.VITE_APPWRITE_PROJECT_ID ||
-      win?.__ENV__?.VITE_APPWRITE_PROJECT_ID ||
-      'aura_nasa_2026'
-    );
+    return readEnv('VITE_APPWRITE_PROJECT_ID') || 'aura_nasa_2026';
   },
   get DATABASE_ID(): string {
-    const proc = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
-    const win = typeof window !== 'undefined' ? (window as any) : undefined;
-    return (
-      proc?.env?.VITE_APPWRITE_DB_ID ||
-      win?.__ENV__?.VITE_APPWRITE_DB_ID ||
-      'AURA_Medical_DB'
-    );
+    return readEnv('VITE_APPWRITE_DB_ID') || 'AURA_Medical_DB';
+  },
+  get IS_CONFIGURED(): boolean {
+    const pid = readEnv('VITE_APPWRITE_PROJECT_ID');
+    return Boolean(pid && pid !== 'aura_nasa_2026' && pid !== 'your_project_id');
   },
   COLLECTIONS: {
     VITALS_LOGS: 'vitals_logs',

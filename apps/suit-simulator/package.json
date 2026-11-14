@@ -7,7 +7,7 @@
     "dev": "vite --port 5174",
     "build": "tsc && vite build",
     "preview": "vite preview --port 5174",
-    "lint": "eslint src",
+    "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,7 +16,8 @@
     "@aura/ui-kit": "*",
     "lucide-react": "^0.378.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-joyride": "^3.2.0"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",

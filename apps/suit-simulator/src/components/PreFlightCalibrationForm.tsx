@@ -210,10 +210,15 @@ export const PreFlightCalibrationForm: React.FC<PreFlightCalibrationFormProps> =
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] font-mono text-ink-subtle block mb-1">
+                    <label
+                      htmlFor={`baseline-${field.key}-mean`}
+                      className="text-[10px] font-mono text-ink-subtle block mb-1"
+                    >
                       Earth Mean (μ)
                     </label>
                     <input
+                      id={`baseline-${field.key}-mean`}
+                      name={`baseline-${field.key}-mean`}
                       type="number"
                       step={field.step}
                       value={stat.mean}
@@ -228,10 +233,15 @@ export const PreFlightCalibrationForm: React.FC<PreFlightCalibrationFormProps> =
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-mono text-ink-subtle block mb-1">
+                    <label
+                      htmlFor={`baseline-${field.key}-stddev`}
+                      className="text-[10px] font-mono text-ink-subtle block mb-1"
+                    >
                       StdDev (σ)
                     </label>
                     <input
+                      id={`baseline-${field.key}-stddev`}
+                      name={`baseline-${field.key}-stddev`}
                       type="number"
                       step={field.step}
                       value={stat.stdDev}

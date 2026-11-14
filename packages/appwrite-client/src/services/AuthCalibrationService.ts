@@ -26,8 +26,8 @@ export class AuthCalibrationService {
   public static async getAstronautProfile(
     options?: { isOfflineMode?: boolean }
   ): Promise<AstronautProfilePrefs> {
-    // 1. Try Appwrite account prefs if logged in and not explicitly offline
-    if (!options?.isOfflineMode) {
+    // 1. Try Appwrite account prefs if configured, logged in, and not explicitly offline
+    if (DB_CONFIG.IS_CONFIGURED && !options?.isOfflineMode) {
       try {
         const prefs = await account.getPrefs();
         if (prefs && prefs.astronautCode && prefs.earthBaselines) {
@@ -142,11 +142,13 @@ export class AuthCalibrationService {
       payload: profile,
     });
 
-    // 3. Attempt async Appwrite account prefs update (silent if unauthenticated)
-    try {
-      await account.updatePrefs(profile);
-    } catch {
-      // Degrades gracefully offline
+    // 3. Attempt async Appwrite account prefs update (only when cloud project configured)
+    if (DB_CONFIG.IS_CONFIGURED) {
+      try {
+        await account.updatePrefs(profile);
+      } catch {
+        // Degrades gracefully offline
+      }
     }
 
     return profile;

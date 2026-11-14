@@ -36,9 +36,8 @@ export function useAppwriteRealtime(): RealtimeStatus {
     }, 1000);
     tickIntervalRef.current = interval;
 
-    // 3. Listen to local BroadcastChannel ('aura_telemetry_bus')
-    const handleBusMessage = (event: MessageEvent) => {
-      const data = event.data;
+    // 3. Listen to local SafeBroadcastBus
+    const handleBusMessage = (data: any) => {
       if (!data || !data.type) return;
 
       const now = new Date().toISOString();
@@ -47,7 +46,7 @@ export function useAppwriteRealtime(): RealtimeStatus {
       switch (data.type) {
         case 'TELEMETRY_SAMPLE':
         case 'TELEMETRY_INGESTED': {
-          const vital = data.payload?.vital || data.payload?.vitalReading || data.payload;
+          const vital = data.payload?.vitalDoc || data.payload?.vital || data.payload?.vitalReading || data.payload;
           const alert = data.payload?.alert || data.payload?.alertDoc || null;
           if (vital) {
             useMedicalStore.getState().applyIngestedTelemetry(vital, alert);
@@ -58,7 +57,12 @@ export function useAppwriteRealtime(): RealtimeStatus {
         case 'TRIAGE_ALERT': {
           const alert = data.payload?.alert || data.payload;
           if (alert) {
-            useMedicalStore.setState({ activeAlert: alert, selectedSystem: alert.affected_system });
+            const isNominal =
+              alert.severity === 'green' || alert.affected_system === 'nominal';
+            useMedicalStore.setState({
+              activeAlert: isNominal ? null : alert,
+              selectedSystem: isNominal ? null : alert.affected_system,
+            });
           }
           break;
         }
@@ -68,6 +72,8 @@ export function useAppwriteRealtime(): RealtimeStatus {
           const missions = data.payload?.missions || data.payload;
           if (Array.isArray(missions)) {
             useMedicalStore.setState({ dailyMissions: missions });
+            const vital = useMedicalStore.getState().currentVital;
+            useMedicalStore.getState().applyIngestedTelemetry(vital);
           }
           break;
         }
@@ -97,7 +103,7 @@ export function useAppwriteRealtime(): RealtimeStatus {
         }
 
         case 'COMMS_MODE_UPDATED': {
-          const mode = data.payload?.distanceMode || data.payload?.mode;
+          const mode = data.payload?.commsMode || data.payload?.distanceMode || data.payload?.mode;
           if (mode) {
             useOfflineSyncStore.getState().setCommsMode(mode as DistanceCommsMode);
           }
@@ -114,61 +120,64 @@ export function useAppwriteRealtime(): RealtimeStatus {
       }
     };
 
-    if (localBus) {
-      localBus.addEventListener('message', handleBusMessage);
+    let unsubscribeLocalBus: (() => void) | null = null;
+    if (localBus && typeof localBus.subscribe === 'function') {
+      unsubscribeLocalBus = localBus.subscribe(handleBusMessage);
       setIsLocalBusConnected(true);
     }
 
-    // 4. Connect to Appwrite Realtime WebSocket (if client is configured)
+    // 4. Connect to Appwrite Realtime WebSocket (only if cloud project is configured)
     let unsubscribeAppwrite: (() => void) | null = null;
-    try {
-      if (appwriteClient && DB_CONFIG.databaseId) {
-        const channels = [
-          `databases.${DB_CONFIG.databaseId}.collections.${DB_CONFIG.collections.vitalsLogs}.documents`,
-          `databases.${DB_CONFIG.databaseId}.collections.${DB_CONFIG.collections.triageAlerts}.documents`,
-          `databases.${DB_CONFIG.databaseId}.collections.${DB_CONFIG.collections.dailyMissions}.documents`,
-        ];
+    if (DB_CONFIG.IS_CONFIGURED) {
+      try {
+        if (appwriteClient && DB_CONFIG.DATABASE_ID) {
+          const channels = [
+            `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.VITALS_LOGS}.documents`,
+            `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.TRIAGE_ALERTS}.documents`,
+            `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.DAILY_MISSIONS}.documents`,
+          ];
 
-        unsubscribeAppwrite = appwriteClient.subscribe(channels, (response) => {
-          setLastEventTimestamp(new Date().toISOString());
-          setIsAppwriteConnected(true);
+          unsubscribeAppwrite = appwriteClient.subscribe(channels, (response) => {
+            setLastEventTimestamp(new Date().toISOString());
+            setIsAppwriteConnected(true);
 
-          const payload = response.payload as any;
-          if (!payload) return;
+            const payload = response.payload as any;
+            if (!payload) return;
 
-          // Vitals document created
-          if (response.events.some((e) => e.includes('.vitals_logs.documents.'))) {
-            useMedicalStore.getState().applyIngestedTelemetry(payload);
-          }
-          // Alert created or updated
-          else if (response.events.some((e) => e.includes('.triage_alerts.documents.'))) {
-            if (payload.is_resolved) {
-              useMedicalStore.setState({ activeAlert: null, selectedSystem: null });
-            } else {
-              useMedicalStore.setState({
-                activeAlert: payload,
-                selectedSystem: payload.affected_system,
-              });
+            // Vitals document created
+            if (response.events.some((e) => e.includes('.vitals_logs.documents.'))) {
+              useMedicalStore.getState().applyIngestedTelemetry(payload);
             }
-          }
-          // Mission updated
-          else if (response.events.some((e) => e.includes('.daily_missions.documents.'))) {
-            const currentMissions = useMedicalStore.getState().dailyMissions;
-            const updated = currentMissions.map((m) => (m.$id === payload.$id ? payload : m));
-            useMedicalStore.setState({ dailyMissions: updated });
-          }
-        });
+            // Alert created or updated
+            else if (response.events.some((e) => e.includes('.triage_alerts.documents.'))) {
+              if (payload.is_resolved) {
+                useMedicalStore.setState({ activeAlert: null, selectedSystem: null });
+              } else {
+                useMedicalStore.setState({
+                  activeAlert: payload,
+                  selectedSystem: payload.affected_system,
+                });
+              }
+            }
+            // Mission updated
+            else if (response.events.some((e) => e.includes('.daily_missions.documents.'))) {
+              const currentMissions = useMedicalStore.getState().dailyMissions;
+              const updated = currentMissions.map((m) => (m.$id === payload.$id ? payload : m));
+              useMedicalStore.setState({ dailyMissions: updated });
+            }
+          });
+        }
+      } catch (err) {
+        console.info('Appwrite Realtime WebSocket offline or unconfigured, utilizing local bus.', err);
       }
-    } catch (err) {
-      console.info('Appwrite Realtime WebSocket offline or unconfigured, utilizing local bus.', err);
     }
 
     return () => {
       if (tickIntervalRef.current) {
         clearInterval(tickIntervalRef.current);
       }
-      if (localBus) {
-        localBus.removeEventListener('message', handleBusMessage);
+      if (unsubscribeLocalBus) {
+        unsubscribeLocalBus();
       }
       if (unsubscribeAppwrite) {
         unsubscribeAppwrite();

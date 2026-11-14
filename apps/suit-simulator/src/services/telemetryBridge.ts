@@ -12,6 +12,10 @@ import {
   AuthCalibrationService,
   CountermeasureService,
   TelemetryService,
+  broadcastBusMessage,
+  localBus,
+  safeLocalStorageSet,
+  type BusMessage,
 } from '@aura/appwrite-client';
 
 const LOCAL_PREFS_KEY = 'aura_astronaut_prefs';
@@ -36,26 +40,19 @@ export interface TelemetryBusEvent {
 }
 
 class TelemetryBridge {
-  private bus: BroadcastChannel | null = null;
   private messageListeners: Set<(event: TelemetryBusEvent) => void> = new Set();
 
   constructor() {
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      try {
-        this.bus = new BroadcastChannel('aura_telemetry_bus');
-        this.bus.onmessage = (ev: MessageEvent<TelemetryBusEvent>) => {
-          this.messageListeners.forEach((listener) => {
-            try {
-              listener(ev.data);
-            } catch (err) {
-              console.error('Error in telemetry bus listener:', err);
-            }
-          });
-        };
-      } catch (e) {
-        console.warn('BroadcastChannel initialization failed:', e);
-      }
-    }
+    localBus.subscribe((msg: BusMessage) => {
+      const event = msg as unknown as TelemetryBusEvent;
+      this.messageListeners.forEach((listener) => {
+        try {
+          listener(event);
+        } catch (err) {
+          console.error('Error in telemetry bus listener:', err);
+        }
+      });
+    });
   }
 
   public subscribe(listener: (event: TelemetryBusEvent) => void): () => void {
@@ -241,9 +238,7 @@ class TelemetryBridge {
   }
 
   public broadcastCommsMode(commsMode: DistanceCommsMode) {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(LOCAL_COMMS_KEY, commsMode);
-    }
+    safeLocalStorageSet(LOCAL_COMMS_KEY, commsMode);
 
     this.postMessage({
       type: 'COMMS_MODE_UPDATED',
@@ -307,12 +302,10 @@ class TelemetryBridge {
   }
 
   private postMessage(event: TelemetryBusEvent) {
-    if (this.bus) {
-      try {
-        this.bus.postMessage(event);
-      } catch (err) {
-        console.warn('Failed to postMessage on BroadcastChannel:', err);
-      }
+    try {
+      broadcastBusMessage(event as unknown as BusMessage);
+    } catch (err) {
+      console.warn('Failed to postMessage on telemetry bus:', err);
     }
   }
 }

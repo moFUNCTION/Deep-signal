@@ -23,10 +23,14 @@ export const ReadinessGauge: React.FC = () => {
   const gaugeColor =
     score >= 85 ? '#22C55E' : score >= 65 ? '#FBBF24' : '#F87171';
 
+  const weightedVitals = Math.round(readiness.vitalsScore * 0.5);
+  const weightedCountermeasures = Math.round(readiness.countermeasuresScore * 0.3);
+  const weightedSleepMood = Math.round(readiness.sleepMoodScore * 0.2);
+
   const nominalItems = [
-    `Vitals Evaluation Score: ${readiness.vitalsScore} / 50 pts`,
-    `Countermeasures: ${completedCount} / ${totalCount} completed (${readiness.countermeasuresScore} / 30 pts)`,
-    `Sleep & Rest Score: ${readiness.sleepMoodScore} / 20 pts`,
+    `Vitals Evaluation Score: ${weightedVitals} / 50 pts`,
+    `Countermeasures: ${completedCount} / ${totalCount} completed (${weightedCountermeasures} / 30 pts)`,
+    `Sleep & Rest Score: ${weightedSleepMood} / 20 pts`,
   ];
 
   const reviewItems = [];
@@ -53,7 +57,7 @@ export const ReadinessGauge: React.FC = () => {
             <p className="text-xs text-ink-muted">50% Vitals + 30% Tasks + 20% Sleep/Mood</p>
           </div>
           <StatusBadge
-            severity={score >= 85 ? 'green' : score >= 65 ? 'yellow' : 'red'}
+            severity={status === 'OPTIMAL_FOR_EVA' ? 'green' : status === 'CAUTION_MONITOR' ? 'yellow' : 'red'}
             label={status.replace(/_/g, ' ')}
             size="sm"
           />
@@ -101,15 +105,15 @@ export const ReadinessGauge: React.FC = () => {
           <div className="flex flex-col gap-2 flex-1">
             <div className="flex justify-between items-center text-xs p-2 rounded-btn bg-surface border border-outline">
               <span className="text-ink font-body">Biometric Vitals</span>
-              <span className="font-mono font-bold text-ink">{readiness.vitalsScore} / 50</span>
+              <span className="font-mono font-bold text-ink">{weightedVitals} / 50</span>
             </div>
             <div className="flex justify-between items-center text-xs p-2 rounded-btn bg-surface border border-outline">
               <span className="text-ink font-body">Daily Countermeasures</span>
-              <span className="font-mono font-bold text-ink">{readiness.countermeasuresScore} / 30</span>
+              <span className="font-mono font-bold text-ink">{weightedCountermeasures} / 30</span>
             </div>
             <div className="flex justify-between items-center text-xs p-2 rounded-btn bg-surface border border-outline">
               <span className="text-ink font-body">Circadian Sleep &amp; Mood</span>
-              <span className="font-mono font-bold text-ink">{readiness.sleepMoodScore} / 20</span>
+              <span className="font-mono font-bold text-ink">{weightedSleepMood} / 20</span>
             </div>
           </div>
         </div>

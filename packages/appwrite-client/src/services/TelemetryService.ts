@@ -97,8 +97,8 @@ export class TelemetryService {
       },
     });
 
-    // 6. Asynchronous Sync to Appwrite Cloud (unless offline or SOLAR_BLACKOUT)
-    if (!isOffline) {
+    // 6. Asynchronous Sync to Appwrite Cloud (only when configured and online)
+    if (DB_CONFIG.IS_CONFIGURED && !isOffline) {
       try {
         const { $id, $createdAt, ...vitalPayload } = vitalDoc;
         await databases.createDocument(
@@ -150,39 +150,41 @@ export class TelemetryService {
     astronautId: string = 'AST-CDR-01',
     limit: number = 20
   ): Promise<VitalReadingInput[]> {
-    try {
-      const response = await databases.listDocuments(
-        DB_CONFIG.DATABASE_ID,
-        DB_CONFIG.COLLECTIONS.VITALS_LOGS,
-        [
-          Query.equal('astronaut_id', astronautId),
-          Query.orderDesc('$createdAt'),
-          Query.limit(limit),
-        ]
-      );
+    if (DB_CONFIG.IS_CONFIGURED) {
+      try {
+        const response = await databases.listDocuments(
+          DB_CONFIG.DATABASE_ID,
+          DB_CONFIG.COLLECTIONS.VITALS_LOGS,
+          [
+            Query.equal('astronaut_id', astronautId),
+            Query.orderDesc('$createdAt'),
+            Query.limit(limit),
+          ]
+        );
 
-      if (response && response.documents.length > 0) {
-        return response.documents.map((doc: any) => ({
-          $id: doc.$id,
-          $createdAt: doc.$createdAt,
-          astronaut_id: doc.astronaut_id,
-          mission_phase: doc.mission_phase,
-          heart_rate: doc.heart_rate,
-          bp_systolic: doc.bp_systolic,
-          bp_diastolic: doc.bp_diastolic,
-          blood_glucose: doc.blood_glucose,
-          body_temp: doc.body_temp,
-          spo2: doc.spo2,
-          sleep_hours: doc.sleep_hours,
-          mood_score: doc.mood_score,
-          cabin_co2_mmhg: doc.cabin_co2_mmhg,
-          cabin_radiation_msv: doc.cabin_radiation_msv,
-          ingestion_source: doc.ingestion_source,
-          edge_alert_id: doc.edge_alert_id,
-        })) as VitalReadingInput[];
+        if (response && response.documents.length > 0) {
+          return response.documents.map((doc: any) => ({
+            $id: doc.$id,
+            $createdAt: doc.$createdAt,
+            astronaut_id: doc.astronaut_id,
+            mission_phase: doc.mission_phase,
+            heart_rate: doc.heart_rate,
+            bp_systolic: doc.bp_systolic,
+            bp_diastolic: doc.bp_diastolic,
+            blood_glucose: doc.blood_glucose,
+            body_temp: doc.body_temp,
+            spo2: doc.spo2,
+            sleep_hours: doc.sleep_hours,
+            mood_score: doc.mood_score,
+            cabin_co2_mmhg: doc.cabin_co2_mmhg,
+            cabin_radiation_msv: doc.cabin_radiation_msv,
+            ingestion_source: doc.ingestion_source,
+            edge_alert_id: doc.edge_alert_id,
+          })) as VitalReadingInput[];
+        }
+      } catch {
+        // Degrades gracefully offline
       }
-    } catch {
-      // Degrades gracefully offline
     }
 
     return this.getLocalHistory();
@@ -201,15 +203,17 @@ export class TelemetryService {
     });
 
     let realtimeUnsub = () => {};
-    try {
-      const channel = `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.VITALS_LOGS}.documents`;
-      realtimeUnsub = appwriteClient.subscribe(channel, (response: any) => {
-        if (response.payload) {
-          callback(response.payload as VitalReadingInput);
-        }
-      });
-    } catch {
-      // Offline fallback
+    if (DB_CONFIG.IS_CONFIGURED) {
+      try {
+        const channel = `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.VITALS_LOGS}.documents`;
+        realtimeUnsub = appwriteClient.subscribe(channel, (response: any) => {
+          if (response.payload) {
+            callback(response.payload as VitalReadingInput);
+          }
+        });
+      } catch {
+        // Offline fallback
+      }
     }
 
     return () => {

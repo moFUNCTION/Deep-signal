@@ -64,11 +64,17 @@ export type BusMessage =
   | { type: 'COMMS_MODE_UPDATED'; payload: { commsMode: DistanceCommsMode } };
 
 /**
- * Universal safe BroadcastChannel wrapper supporting browser tabs, workers, and Node mock fallbacks.
+ * Universal safe BroadcastChannel + localhost cross-origin SSE relay wrapper
+ * supporting same-origin tabs, cross-port Vite apps (5173 <-> 5174), and Node test fallbacks.
  */
+const LOCAL_RELAY_URL = 'http://localhost:5173/__aura_bus';
+
 class SafeBroadcastBus {
   private channel: BroadcastChannel | null = null;
+  private eventSource: EventSource | null = null;
   private listeners: Set<(msg: BusMessage) => void> = new Set();
+  private senderId = `tab_${Math.random().toString(36).slice(2, 10)}`;
+  private seenIds = new Set<string>();
 
   constructor(channelName: string) {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -76,23 +82,86 @@ class SafeBroadcastBus {
         this.channel = new BroadcastChannel(channelName);
         this.channel.onmessage = (event) => {
           if (event.data && typeof event.data === 'object') {
-            this.notifyListeners(event.data as BusMessage);
+            this.handleIncoming(event.data);
           }
         };
       } catch (err) {
         console.warn('[SafeBroadcastBus] BroadcastChannel initialization failed:', err);
       }
     }
+
+    // Cross-port localhost bridge (connects port 5174 <-> port 5173 seamlessly)
+    if (
+      typeof window !== 'undefined' &&
+      typeof EventSource !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ) {
+      try {
+        const relayUrl = `http://${window.location.hostname}:5173/__aura_bus`;
+        this.eventSource = new EventSource(relayUrl);
+        this.eventSource.onmessage = (ev) => {
+          try {
+            const envelope = JSON.parse(ev.data);
+            this.handleIncoming(envelope);
+          } catch {
+            // ignore malformed relay packets
+          }
+        };
+        this.eventSource.onerror = () => {
+          // Browser automatically retries SSE cleanly; suppress noisy console spam
+        };
+      } catch {
+        // ignore in environments without SSE
+      }
+    }
+  }
+
+  private handleIncoming(raw: any): void {
+    if (!raw || typeof raw !== 'object') return;
+    if (raw.__senderId === this.senderId) return;
+    if (raw.__msgId) {
+      if (this.seenIds.has(raw.__msgId)) return;
+      this.seenIds.add(raw.__msgId);
+      if (this.seenIds.size > 200) {
+        const first = this.seenIds.values().next().value;
+        if (first) this.seenIds.delete(first);
+      }
+    }
+    const msg: BusMessage = raw.__envelope ? raw.msg : (raw as BusMessage);
+    this.notifyListeners(msg);
   }
 
   public post(msg: BusMessage): void {
+    const msgId = `${this.senderId}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    this.seenIds.add(msgId);
+    const envelope = { __envelope: true, __senderId: this.senderId, __msgId: msgId, msg };
+
     if (this.channel) {
       try {
-        this.channel.postMessage(msg);
+        this.channel.postMessage(envelope);
       } catch (err) {
         console.warn('[SafeBroadcastBus] postMessage failed:', err);
       }
     }
+
+    if (
+      typeof window !== 'undefined' &&
+      typeof fetch === 'function' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ) {
+      const relayUrl =
+        window.location.hostname === '127.0.0.1'
+          ? 'http://127.0.0.1:5173/__aura_bus'
+          : LOCAL_RELAY_URL;
+      fetch(relayUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(envelope),
+      }).catch(() => {
+        // Relay optional when HUD server is not running
+      });
+    }
+
     // Also notify same-window listeners
     this.notifyListeners(msg);
   }
@@ -149,7 +218,14 @@ export function safeLocalStorageGet<T>(key: string, fallback: T): T {
   try {
     const raw = store.getItem(key);
     if (!raw) return fallback;
-    return JSON.parse(raw) as T;
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      if (typeof fallback === 'string') {
+        return raw as unknown as T;
+      }
+      return fallback;
+    }
   } catch (err) {
     console.warn(`[safeLocalStorageGet] Failed to read key "${key}":`, err);
     return fallback;

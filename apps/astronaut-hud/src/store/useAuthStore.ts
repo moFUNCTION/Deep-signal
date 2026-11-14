@@ -6,7 +6,8 @@ import type {
 import {
   AuthCalibrationService,
   DEFAULT_ASTRONAUT_PREFS,
-  localBus,
+  broadcastBusMessage,
+  type AstronautProfilePrefs,
 } from '@aura/appwrite-client';
 
 export interface AstronautProfileState {
@@ -36,10 +37,10 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   profile: {
-    astronautId: DEFAULT_ASTRONAUT_PREFS.astronautId || 'AST-CDR-01',
+    astronautId: DEFAULT_ASTRONAUT_PREFS.astronautCode || 'AST-CDR-01',
     astronautCode: DEFAULT_ASTRONAUT_PREFS.astronautCode || 'AST-CDR-01',
     fullName: DEFAULT_ASTRONAUT_PREFS.fullName || 'Cmdr. Tariq Al-Mansoor',
-    role: DEFAULT_ASTRONAUT_PREFS.role || 'Mission Commander & Pilot',
+    role: 'Mission Commander & Pilot',
     bloodType: DEFAULT_ASTRONAUT_PREFS.bloodType || 'O+',
     missionPhase: (DEFAULT_ASTRONAUT_PREFS.missionPhase as MissionPhase) || 'EARLY_ORBIT_ADAPTATION',
     earthBaselines: {
@@ -49,7 +50,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       blood_glucose: { mean: 92, stdDev: 9 },
       body_temp: { mean: 36.6, stdDev: 0.25 },
       spo2: { mean: 98, stdDev: 1 },
-      ...DEFAULT_ASTRONAUT_PREFS.earthBaselines,
+      ...(DEFAULT_ASTRONAUT_PREFS.earthBaselines as any),
     },
   },
   viewMode: 'crew',
@@ -62,14 +63,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (stored) {
         set({
           profile: {
-            astronautId: stored.astronautId || 'AST-CDR-01',
+            astronautId: (stored as any).astronautId || stored.astronautCode || 'AST-CDR-01',
             astronautCode: stored.astronautCode || 'AST-CDR-01',
             fullName: stored.fullName || 'Cmdr. Tariq Al-Mansoor',
-            role: stored.role || 'Mission Commander & Pilot',
+            role: (stored as any).role || 'Mission Commander & Pilot',
             bloodType: stored.bloodType || 'O+',
             missionPhase: stored.missionPhase as MissionPhase,
-            earthBaselines: stored.earthBaselines,
-            lastSyncTimestamp: stored.lastSyncTimestamp,
+            earthBaselines: stored.earthBaselines as EarthBaselines,
+            lastSyncTimestamp: (stored as any).lastSyncTimestamp,
           },
         });
       }
@@ -94,16 +95,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.setItem('aura_astronaut_prefs', JSON.stringify(updated));
     }
 
-    if (localBus) {
-      localBus.postMessage({
-        type: 'MISSION_PHASE_CHANGE',
-        payload: { missionPhase: phase },
-      });
-      localBus.postMessage({
-        type: 'PREFS_UPDATED',
-        payload: updated,
-      });
-    }
+    const payload: AstronautProfilePrefs = {
+      astronautCode: updated.astronautCode,
+      fullName: updated.fullName,
+      bloodType: updated.bloodType,
+      missionPhase: updated.missionPhase,
+      earthBaselines: updated.earthBaselines,
+    };
+    broadcastBusMessage({
+      type: 'PREFS_UPDATED',
+      payload,
+    });
   },
 
   updateBaselines: async (baselines: EarthBaselines) => {
@@ -120,16 +122,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.setItem('aura_astronaut_prefs', JSON.stringify(updated));
     }
 
-    if (localBus) {
-      localBus.postMessage({
-        type: 'BASELINE_CHANGE',
-        payload: { earthBaselines: baselines },
-      });
-      localBus.postMessage({
-        type: 'PREFS_UPDATED',
-        payload: updated,
-      });
-    }
+    const payload: AstronautProfilePrefs = {
+      astronautCode: updated.astronautCode,
+      fullName: updated.fullName,
+      bloodType: updated.bloodType,
+      missionPhase: updated.missionPhase,
+      earthBaselines: updated.earthBaselines,
+    };
+    broadcastBusMessage({
+      type: 'PREFS_UPDATED',
+      payload,
+    });
   },
 
   setViewMode: (mode: ViewMode) => {
