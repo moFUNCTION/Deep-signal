@@ -105,9 +105,21 @@ export const AppContent: React.FC = () => {
         setCommsMode(hydrated.commsMode);
       }
       if (hydrated.latestVital) {
+        const latest = hydrated.latestVital;
         setCurrentValues((prev) => ({
           ...prev,
-          ...hydrated.latestVital,
+          astronaut_id: latest.astronaut_id ?? prev.astronaut_id,
+          mission_phase: latest.mission_phase ?? prev.mission_phase,
+          heart_rate: latest.heart_rate ?? prev.heart_rate,
+          bp_systolic: latest.bp_systolic ?? prev.bp_systolic,
+          bp_diastolic: latest.bp_diastolic ?? prev.bp_diastolic,
+          blood_glucose: latest.blood_glucose ?? prev.blood_glucose,
+          body_temp: latest.body_temp ?? prev.body_temp,
+          spo2: latest.spo2 ?? prev.spo2,
+          cabin_co2_mmhg: latest.cabin_co2_mmhg ?? prev.cabin_co2_mmhg,
+          cabin_radiation_msv: latest.cabin_radiation_msv ?? prev.cabin_radiation_msv,
+          sleep_hours: latest.sleep_hours ?? prev.sleep_hours,
+          mood_score: latest.mood_score ?? prev.mood_score,
         }));
       }
     });

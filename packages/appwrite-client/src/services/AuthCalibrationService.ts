@@ -11,7 +11,6 @@ import {
   MissionPhase,
 } from '../config';
 import {
-  account,
   broadcastBusMessage,
   localBus,
   safeLocalStorageGet,
@@ -22,38 +21,16 @@ import { DtnCommsService } from './DtnCommsService';
 export class AuthCalibrationService {
   /**
    * Retrieves the current astronaut profile and pre-flight BDC baselines.
-   * Checks Appwrite account preferences, falling back to LocalStorage and default constants.
+   * Reads LocalStorage (hydrated and kept in sync via Appwrite Remote Control + BroadcastChannel)
+   * without triggering unauthenticated Account API 401 calls in guest sessions.
    */
   public static async getAstronautProfile(
-    options?: { isOfflineMode?: boolean }
+    _options?: { isOfflineMode?: boolean }
   ): Promise<AstronautProfilePrefs> {
-    // 1. Try Appwrite account prefs if configured, logged in, and not explicitly offline
-    if (DB_CONFIG.IS_CONFIGURED && !options?.isOfflineMode) {
-      try {
-        const prefs = await account.getPrefs();
-        if (prefs && prefs.astronautCode && prefs.earthBaselines) {
-          const fullProfile: AstronautProfilePrefs = {
-            astronautCode: prefs.astronautCode,
-            fullName: prefs.fullName || DEFAULT_ASTRONAUT_PREFS.fullName,
-            bloodType: prefs.bloodType || DEFAULT_ASTRONAUT_PREFS.bloodType,
-            missionPhase: prefs.missionPhase || DEFAULT_ASTRONAUT_PREFS.missionPhase,
-            earthBaselines: prefs.earthBaselines,
-          };
-          safeLocalStorageSet(DB_CONFIG.STORAGE_KEYS.PREFS, fullProfile);
-          return fullProfile;
-        }
-      } catch {
-        // Expected when unauthenticated or offline
-      }
-    }
-
-    // 2. Fall back to LocalStorage
-    const localProfile = safeLocalStorageGet<AstronautProfilePrefs>(
+    return safeLocalStorageGet<AstronautProfilePrefs>(
       DB_CONFIG.STORAGE_KEYS.PREFS,
       DEFAULT_ASTRONAUT_PREFS
     );
-
-    return localProfile;
   }
 
   /**
@@ -143,17 +120,15 @@ export class AuthCalibrationService {
       payload: profile,
     });
 
-    // 3. Sync shared profile/phase control state via Appwrite Realtime + optional Account Prefs
+    // 3. Sync shared profile/phase control state via Appwrite Realtime (guest-safe Role.any collection)
     if (DB_CONFIG.IS_CONFIGURED) {
-      void DtnCommsService.syncRemoteControlState(profile.astronautCode || 'AST-CDR-01', {
-        missionPhase: profile.missionPhase,
-        earthBaselines: profile.earthBaselines,
-      });
-
       try {
-        await account.updatePrefs(profile);
+        await DtnCommsService.syncRemoteControlState(profile.astronautCode || 'AST-CDR-01', {
+          missionPhase: profile.missionPhase,
+          earthBaselines: profile.earthBaselines,
+        });
       } catch {
-        // Account session optional; shared control doc handles cross-origin realtime sync
+        // Offline / network fallback succeeded locally
       }
     }
 

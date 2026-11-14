@@ -183,9 +183,10 @@ class TelemetryBridge {
         incompleteTasks,
       );
 
-    const vitalId = reading.$id || `vital_${Date.now()}`;
-    const alertId = reading.edge_alert_id || `alert_${Date.now()}`;
-    const timestamp = reading.$createdAt || new Date().toISOString();
+    const nonce = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const vitalId = `vital_${nonce}`;
+    const alertId = `alert_${nonce}`;
+    const timestamp = new Date().toISOString();
 
     const vitalDoc: VitalReadingInput = {
       ...reading,
