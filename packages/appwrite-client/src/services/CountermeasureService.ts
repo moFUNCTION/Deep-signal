@@ -54,33 +54,36 @@ export class CountermeasureService {
    * Tries Appwrite Cloud, falls back to LocalStorage or default missions.
    */
   public static async listDailyMissions(
-    astronautId: string = 'AST-CDR-01'
+    astronautId: string = 'AST-CDR-01',
+    options?: { isOfflineMode?: boolean }
   ): Promise<DailyMissionDocument[]> {
-    try {
-      const response = await databases.listDocuments(
-        DB_CONFIG.DATABASE_ID,
-        DB_CONFIG.COLLECTIONS.DAILY_MISSIONS,
-        [Query.equal('astronaut_id', astronautId)]
-      );
+    if (!options?.isOfflineMode) {
+      try {
+        const response = await databases.listDocuments(
+          DB_CONFIG.DATABASE_ID,
+          DB_CONFIG.COLLECTIONS.DAILY_MISSIONS,
+          [Query.equal('astronaut_id', astronautId)]
+        );
 
-      if (response && response.documents.length > 0) {
-        const missions = response.documents.map((doc: any) => ({
-          $id: doc.$id,
-          astronaut_id: doc.astronaut_id,
-          task_code: doc.task_code,
-          task_title: doc.task_title,
-          target_system: doc.target_system,
-          points_value: doc.points_value,
-          is_completed: doc.is_completed,
-          streak_days: doc.streak_days,
-          $createdAt: doc.$createdAt,
-        })) as DailyMissionDocument[];
+        if (response && response.documents.length > 0) {
+          const missions = response.documents.map((doc: any) => ({
+            $id: doc.$id,
+            astronaut_id: doc.astronaut_id,
+            task_code: doc.task_code,
+            task_title: doc.task_title,
+            target_system: doc.target_system,
+            points_value: doc.points_value,
+            is_completed: doc.is_completed,
+            streak_days: doc.streak_days,
+            $createdAt: doc.$createdAt,
+          })) as DailyMissionDocument[];
 
-        safeLocalStorageSet(DB_CONFIG.STORAGE_KEYS.MISSIONS, missions);
-        return missions;
+          safeLocalStorageSet(DB_CONFIG.STORAGE_KEYS.MISSIONS, missions);
+          return missions;
+        }
+      } catch {
+        // Degrades gracefully offline
       }
-    } catch {
-      // Degrades gracefully offline
     }
 
     const localMissions = safeLocalStorageGet<DailyMissionDocument[]>(

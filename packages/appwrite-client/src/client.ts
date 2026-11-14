@@ -130,13 +130,24 @@ export const account = new Account(appwriteClient);
 export const databases = new Databases(appwriteClient);
 export const storage = new Storage(appwriteClient);
 
+function getStorage(): any {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage;
+  }
+  if (typeof globalThis !== 'undefined' && (globalThis as any).localStorage) {
+    return (globalThis as any).localStorage;
+  }
+  return null;
+}
+
 // LocalStorage Persistence Helpers
 export function safeLocalStorageGet<T>(key: string, fallback: T): T {
-  if (typeof window === 'undefined' || !window.localStorage) {
+  const store = getStorage();
+  if (!store) {
     return fallback;
   }
   try {
-    const raw = window.localStorage.getItem(key);
+    const raw = store.getItem(key);
     if (!raw) return fallback;
     return JSON.parse(raw) as T;
   } catch (err) {
@@ -146,22 +157,24 @@ export function safeLocalStorageGet<T>(key: string, fallback: T): T {
 }
 
 export function safeLocalStorageSet(key: string, value: any): void {
-  if (typeof window === 'undefined' || !window.localStorage) {
+  const store = getStorage();
+  if (!store) {
     return;
   }
   try {
-    window.localStorage.setItem(key, JSON.stringify(value));
+    store.setItem(key, JSON.stringify(value));
   } catch (err) {
     console.warn(`[safeLocalStorageSet] Failed to write key "${key}":`, err);
   }
 }
 
 export function safeLocalStorageRemove(key: string): void {
-  if (typeof window === 'undefined' || !window.localStorage) {
+  const store = getStorage();
+  if (!store) {
     return;
   }
   try {
-    window.localStorage.removeItem(key);
+    store.removeItem(key);
   } catch (err) {
     console.warn(`[safeLocalStorageRemove] Failed to remove key "${key}":`, err);
   }

@@ -4,7 +4,7 @@ import type {
   ReadinessBreakdown,
   ReadinessInput,
   ReadinessStatus,
-} from '../types.js';
+} from '../types.ts';
 
 /**
  * Calculates the NASA Mission Readiness Score (50% vitals, 30% countermeasures, 20% sleep/mood)

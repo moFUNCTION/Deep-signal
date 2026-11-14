@@ -5,8 +5,8 @@ import type {
   MissionPhase,
   TriageDiagnosisOutput,
   VitalReadingInput,
-} from '../types.js';
-import { evaluateAllMetrics } from './zScoreEvaluator.js';
+} from '../types.ts';
+import { evaluateAllMetrics } from './zScoreEvaluator.ts';
 
 const SYSTEM_MAP: Record<MetricKey, AnatomicalSystem> = {
   heart_rate: 'cardiovascular',

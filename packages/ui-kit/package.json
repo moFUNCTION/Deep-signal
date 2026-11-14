@@ -1,11 +1,13 @@
 {
   "name": "@aura/ui-kit",
   "version": "0.0.0",
+  "type": "module",
   "private": true,
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test src/__tests__/tokens.test.ts"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",

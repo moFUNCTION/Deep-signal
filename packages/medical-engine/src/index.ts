@@ -4,10 +4,10 @@
  * Pure TypeScript with Zero Runtime Dependencies
  */
 
-export * from './types.js';
-export * from './constants/hardLimits.js';
-export * from './constants/phaseOffsets.js';
-export * from './constants/protocols.js';
-export * from './evaluators/zScoreEvaluator.js';
-export * from './evaluators/correlationEngine.js';
-export * from './evaluators/readinessScore.js';
+export * from './types.ts';
+export * from './constants/hardLimits.ts';
+export * from './constants/phaseOffsets.ts';
+export * from './constants/protocols.ts';
+export * from './evaluators/zScoreEvaluator.ts';
+export * from './evaluators/correlationEngine.ts';
+export * from './evaluators/readinessScore.ts';

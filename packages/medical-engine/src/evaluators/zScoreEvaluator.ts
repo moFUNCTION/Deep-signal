@@ -1,5 +1,5 @@
-import { NASA_HARD_LIMITS } from '../constants/hardLimits.js';
-import { DEFAULT_ASTRONAUT_PREFS, MISSION_PHASE_OFFSETS } from '../constants/phaseOffsets.js';
+import { NASA_HARD_LIMITS } from '../constants/hardLimits.ts';
+import { DEFAULT_ASTRONAUT_PREFS, MISSION_PHASE_OFFSETS } from '../constants/phaseOffsets.ts';
 import type {
   BaselineStat,
   BiometricMetricKey,
@@ -10,7 +10,7 @@ import type {
   PhaseAdjustedBands,
   TriggerType,
   VitalReadingInput,
-} from '../types.js';
+} from '../types.ts';
 
 /**
  * Rounds a number to exactly two decimal places

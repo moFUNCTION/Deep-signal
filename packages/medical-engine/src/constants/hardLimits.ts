@@ -1,4 +1,4 @@
-import type { HardLimitDef, MetricKey } from '../types.js';
+import type { HardLimitDef, MetricKey } from '../types.ts';
 
 /**
  * NASA Clinical Hard Limits Table

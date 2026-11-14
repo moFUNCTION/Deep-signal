@@ -13,7 +13,8 @@
     }
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/client.test.js"
   },
   "dependencies": {
     "appwrite": "^16.0.0"

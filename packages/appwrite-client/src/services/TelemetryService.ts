@@ -45,9 +45,12 @@ export class TelemetryService {
       ingestion_source: reading.ingestion_source || 'LIVE_STREAM',
     };
 
+    const commsMode = options?.commsMode || safeLocalStorageGet<DistanceCommsMode>(DB_CONFIG.STORAGE_KEYS.COMMS_MODE, 'ISS_REALTIME');
+    const isOffline = options?.isOfflineMode || commsMode === 'SOLAR_BLACKOUT';
+
     // 1. Fetch current astronaut profile baselines and incomplete tasks
-    const profile = await AuthCalibrationService.getAstronautProfile();
-    const missions = await CountermeasureService.listDailyMissions(reading.astronaut_id);
+    const profile = await AuthCalibrationService.getAstronautProfile({ isOfflineMode: isOffline });
+    const missions = await CountermeasureService.listDailyMissions(reading.astronaut_id, { isOfflineMode: isOffline });
     const incompleteTasks = missions.filter((m) => !m.is_completed).map((m) => m.task_code);
 
     // 2. Deterministic Isomorphic Triage Evaluation
@@ -95,9 +98,6 @@ export class TelemetryService {
     });
 
     // 6. Asynchronous Sync to Appwrite Cloud (unless offline or SOLAR_BLACKOUT)
-    const commsMode = options?.commsMode || safeLocalStorageGet<DistanceCommsMode>(DB_CONFIG.STORAGE_KEYS.COMMS_MODE, 'ISS_REALTIME');
-    const isOffline = options?.isOfflineMode || commsMode === 'SOLAR_BLACKOUT';
-
     if (!isOffline) {
       try {
         const { $id, $createdAt, ...vitalPayload } = vitalDoc;

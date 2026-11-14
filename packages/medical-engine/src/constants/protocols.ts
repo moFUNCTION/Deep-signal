@@ -1,4 +1,4 @@
-import type { VisualGuideMetadata } from '../types.js';
+import type { VisualGuideMetadata } from '../types.ts';
 
 /**
  * Storage Visual Guides & Fallback Procedures

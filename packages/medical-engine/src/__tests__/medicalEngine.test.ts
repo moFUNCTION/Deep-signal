@@ -13,8 +13,8 @@ import {
   evaluateZScore,
   runAutonomousTriage,
   calculateMissionReadiness,
-} from '../index.js';
-import type { VitalReadingInput, EarthBaselines } from '../types.js';
+} from '../index.ts';
+import type { VitalReadingInput, EarthBaselines } from '../types.ts';
 
 const mockBaselines: EarthBaselines = DEFAULT_ASTRONAUT_PREFS.earthBaselines;
 
@@ -69,12 +69,17 @@ describe('NASA Hard Limits & Environmental Thresholds', () => {
     assert.equal(hypoxemia.severity, 'red');
     assert.equal(hypoxemia.triggerType, 'HARD_CLINICAL_LIMIT');
 
-    // 98% and 100% must be nominal (not red)
-    const nominal = evaluateSingleMetric('spo2', 98, mockBaselines.spo2, 'DEEP_SPACE_CRUISE');
-    assert.equal(nominal.severity, 'green');
+    // 98% and 99% are nominal (|X - 98| <= 1.0 sigma < 2.0)
+    const nominal98 = evaluateSingleMetric('spo2', 98, mockBaselines.spo2, 'DEEP_SPACE_CRUISE');
+    assert.equal(nominal98.severity, 'green');
 
+    const nominal99 = evaluateSingleMetric('spo2', 99, mockBaselines.spo2, 'DEEP_SPACE_CRUISE');
+    assert.equal(nominal99.severity, 'green');
+
+    // 100% produces Z = |100 - 98| / 1.0 = 2.0 sigma (MODERATE_PERSONAL_DEVIATION yellow)
     const hundred = evaluateSingleMetric('spo2', 100, mockBaselines.spo2, 'DEEP_SPACE_CRUISE');
-    assert.equal(hundred.severity, 'green');
+    assert.equal(hundred.severity, 'yellow');
+    assert.equal(hundred.zScore, 2.0);
 
     // Over 100% is sensor glitch / breached
     const glitch = evaluateSingleMetric('spo2', 101, mockBaselines.spo2, 'DEEP_SPACE_CRUISE');

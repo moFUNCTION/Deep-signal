@@ -23,23 +23,27 @@ export class AuthCalibrationService {
    * Retrieves the current astronaut profile and pre-flight BDC baselines.
    * Checks Appwrite account preferences, falling back to LocalStorage and default constants.
    */
-  public static async getAstronautProfile(): Promise<AstronautProfilePrefs> {
-    // 1. Try Appwrite account prefs if logged in
-    try {
-      const prefs = await account.getPrefs();
-      if (prefs && prefs.astronautCode && prefs.earthBaselines) {
-        const fullProfile: AstronautProfilePrefs = {
-          astronautCode: prefs.astronautCode,
-          fullName: prefs.fullName || DEFAULT_ASTRONAUT_PREFS.fullName,
-          bloodType: prefs.bloodType || DEFAULT_ASTRONAUT_PREFS.bloodType,
-          missionPhase: prefs.missionPhase || DEFAULT_ASTRONAUT_PREFS.missionPhase,
-          earthBaselines: prefs.earthBaselines,
-        };
-        safeLocalStorageSet(DB_CONFIG.STORAGE_KEYS.PREFS, fullProfile);
-        return fullProfile;
+  public static async getAstronautProfile(
+    options?: { isOfflineMode?: boolean }
+  ): Promise<AstronautProfilePrefs> {
+    // 1. Try Appwrite account prefs if logged in and not explicitly offline
+    if (!options?.isOfflineMode) {
+      try {
+        const prefs = await account.getPrefs();
+        if (prefs && prefs.astronautCode && prefs.earthBaselines) {
+          const fullProfile: AstronautProfilePrefs = {
+            astronautCode: prefs.astronautCode,
+            fullName: prefs.fullName || DEFAULT_ASTRONAUT_PREFS.fullName,
+            bloodType: prefs.bloodType || DEFAULT_ASTRONAUT_PREFS.bloodType,
+            missionPhase: prefs.missionPhase || DEFAULT_ASTRONAUT_PREFS.missionPhase,
+            earthBaselines: prefs.earthBaselines,
+          };
+          safeLocalStorageSet(DB_CONFIG.STORAGE_KEYS.PREFS, fullProfile);
+          return fullProfile;
+        }
+      } catch {
+        // Expected when unauthenticated or offline
       }
-    } catch {
-      // Expected when unauthenticated or offline
     }
 
     // 2. Fall back to LocalStorage

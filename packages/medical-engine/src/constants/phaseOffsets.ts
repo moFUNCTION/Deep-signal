@@ -4,7 +4,7 @@ import type {
   DistanceCommsMode,
   MissionPhase,
   PhaseOffsetDef,
-} from '../types.js';
+} from '../types.ts';
 
 /**
  * Mission Phase Offsets Table
