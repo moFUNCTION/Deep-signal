@@ -6,6 +6,7 @@ export const ReadinessGauge: React.FC = () => {
   const readiness = useMedicalStore((s) => s.readiness);
   const dailyMissions = useMedicalStore((s) => s.dailyMissions);
   const activeAlert = useMedicalStore((s) => s.activeAlert);
+  const currentVital = useMedicalStore((s) => s.currentVital);
 
   const [showFullScoreCard, setShowFullScoreCard] = useState(false);
 
@@ -30,7 +31,7 @@ export const ReadinessGauge: React.FC = () => {
   const nominalItems = [
     `Vitals Evaluation Score: ${weightedVitals} / 50 pts`,
     `Countermeasures: ${completedCount} / ${totalCount} completed (${weightedCountermeasures} / 30 pts)`,
-    `Sleep & Rest Score: ${weightedSleepMood} / 20 pts`,
+    `Sleep & Rest Score: ${weightedSleepMood} / 20 pts (${currentVital.sleep_hours.toFixed(1)}h · ${currentVital.mood_score}/10 mood)`,
   ];
 
   const reviewItems = [];
@@ -111,8 +112,13 @@ export const ReadinessGauge: React.FC = () => {
               <span className="text-ink font-body">Daily Countermeasures</span>
               <span className="font-mono font-bold text-ink">{weightedCountermeasures} / 30</span>
             </div>
-            <div className="flex justify-between items-center text-xs p-2 rounded-btn bg-surface border border-outline">
-              <span className="text-ink font-body">Circadian Sleep &amp; Mood</span>
+            <div className="flex justify-between items-center text-xs p-2 rounded-btn bg-surface border border-outline gap-2">
+              <div className="flex flex-col">
+                <span className="text-ink font-body">Circadian Sleep &amp; Mood</span>
+                <span className="font-mono text-[10px] text-ink-muted">
+                  {currentVital.sleep_hours.toFixed(1)}h sleep · {currentVital.mood_score}/10 mood
+                </span>
+              </div>
               <span className="font-mono font-bold text-ink">{weightedSleepMood} / 20</span>
             </div>
           </div>

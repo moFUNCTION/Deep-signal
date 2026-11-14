@@ -73,6 +73,8 @@ export class DtnCommsService {
     }
   }
 
+  private static controlSyncQueue: Promise<void> = Promise.resolve();
+
   /**
    * Upserts the cross-origin mission control state document in `earth_transmissions`
    * so missionPhase, earthBaselines, and commsMode sync via Appwrite Realtime without requiring login.
@@ -87,51 +89,66 @@ export class DtnCommsService {
   ): Promise<void> {
     if (!DB_CONFIG.IS_CONFIGURED) return;
 
-    const docId = `sync_ctrl_${astronautId}`.slice(0, 36);
-    const localPrefs = safeLocalStorageGet(DB_CONFIG.STORAGE_KEYS.PREFS, DEFAULT_ASTRONAUT_PREFS);
-    const localComms = this.getCommsMode();
+    this.controlSyncQueue = this.controlSyncQueue
+      .catch(() => {})
+      .then(async () => {
+        const docId = `sync_ctrl_${astronautId}`.slice(0, 36);
+        const localPrefs = safeLocalStorageGet(DB_CONFIG.STORAGE_KEYS.PREFS, DEFAULT_ASTRONAUT_PREFS);
+        const localComms = this.getCommsMode();
 
-    const statePayload: RemoteControlState = {
-      kind: 'CONTROL_STATE_SYNC',
-      missionPhase: partial.missionPhase || localPrefs.missionPhase,
-      earthBaselines: partial.earthBaselines || localPrefs.earthBaselines,
-      commsMode: partial.commsMode || localComms,
-      updatedAt: Date.now(),
-    };
+        const statePayload: RemoteControlState = {
+          kind: 'CONTROL_STATE_SYNC',
+          missionPhase: partial.missionPhase || localPrefs.missionPhase,
+          earthBaselines: partial.earthBaselines || localPrefs.earthBaselines,
+          commsMode: partial.commsMode || localComms,
+          updatedAt: Date.now(),
+        };
 
-    const docBody = {
-      astronaut_id: astronautId.slice(0, 36),
-      alert_id: CONTROL_SYNC_ALERT_ID,
-      distance_mode: statePayload.commsMode || 'ISS_REALTIME',
-      delay_seconds: 0,
-      status: 'received_by_earth',
-      report_file_id: null,
-      telemetry_json: JSON.stringify(statePayload).slice(0, 5000),
-    };
+        const docBody = {
+          astronaut_id: astronautId.slice(0, 36),
+          alert_id: CONTROL_SYNC_ALERT_ID,
+          distance_mode: statePayload.commsMode || 'ISS_REALTIME',
+          delay_seconds: 0,
+          status: 'received_by_earth',
+          report_file_id: null,
+          telemetry_json: JSON.stringify(statePayload).slice(0, 5000),
+        };
 
-    try {
-      await databases.updateDocument(
-        DB_CONFIG.DATABASE_ID,
-        DB_CONFIG.COLLECTIONS.EARTH_TRANSMISSIONS,
-        docId,
-        docBody
-      );
-    } catch (err: any) {
-      if (err?.code === 404) {
         try {
-          await databases.createDocument(
+          await databases.updateDocument(
             DB_CONFIG.DATABASE_ID,
             DB_CONFIG.COLLECTIONS.EARTH_TRANSMISSIONS,
             docId,
             docBody
           );
-        } catch (createErr) {
-          console.warn('[DtnCommsService] Failed to create remote control sync doc:', createErr);
+        } catch (err: any) {
+          if (err?.code === 404) {
+            try {
+              await databases.createDocument(
+                DB_CONFIG.DATABASE_ID,
+                DB_CONFIG.COLLECTIONS.EARTH_TRANSMISSIONS,
+                docId,
+                docBody
+              );
+            } catch (createErr: any) {
+              if (createErr?.code === 409) {
+                await databases.updateDocument(
+                  DB_CONFIG.DATABASE_ID,
+                  DB_CONFIG.COLLECTIONS.EARTH_TRANSMISSIONS,
+                  docId,
+                  docBody
+                );
+              } else {
+                console.warn('[DtnCommsService] Failed to create remote control sync doc:', createErr);
+              }
+            }
+          } else {
+            console.warn('[DtnCommsService] Failed to update remote control sync doc:', err);
+          }
         }
-      } else {
-        console.warn('[DtnCommsService] Failed to update remote control sync doc:', err);
-      }
-    }
+      });
+
+    return this.controlSyncQueue;
   }
 
   /**

@@ -40,6 +40,7 @@ export const AppContent: React.FC = () => {
   const [activeScenarioId, setActiveScenarioId] = useState<string | null>('nominal_cruise');
   const [activeTab, setActiveTab] = useState<SimulatorTab>('scenarios');
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const [, setMissionsVersion] = useState<number>(0);
 
   const [currentValues, setCurrentValues] = useState<VitalReadingInput>(() => {
     const nominal = SCENARIO_PRESETS[0];
@@ -51,7 +52,11 @@ export const AppContent: React.FC = () => {
   });
 
   useEffect(() => {
+    let isMounted = true;
+
     const unsubscribe = telemetryBridge.subscribe((event) => {
+      if (!isMounted) return;
+
       if (event.type === 'BASELINE_CHANGE' || event.type === 'PREFS_UPDATED') {
         const payload = event.payload;
         if (payload?.earthBaselines) {
@@ -68,10 +73,47 @@ export const AppContent: React.FC = () => {
         if (event.payload?.commsMode) {
           setCommsMode(event.payload.commsMode);
         }
+      } else if (event.type === 'MISSIONS_UPDATED') {
+        setMissionsVersion((v) => v + 1);
+      } else if (event.type === 'TELEMETRY_SAMPLE' && event.payload) {
+        const sample = event.payload as Partial<VitalReadingInput>;
+        if (typeof sample.heart_rate === 'number') {
+          setCurrentValues((prev) => ({
+            ...prev,
+            astronaut_id: sample.astronaut_id ?? prev.astronaut_id,
+            mission_phase: sample.mission_phase ?? prev.mission_phase,
+            heart_rate: sample.heart_rate ?? prev.heart_rate,
+            bp_systolic: sample.bp_systolic ?? prev.bp_systolic,
+            bp_diastolic: sample.bp_diastolic ?? prev.bp_diastolic,
+            blood_glucose: sample.blood_glucose ?? prev.blood_glucose,
+            body_temp: sample.body_temp ?? prev.body_temp,
+            spo2: sample.spo2 ?? prev.spo2,
+            cabin_co2_mmhg: sample.cabin_co2_mmhg ?? prev.cabin_co2_mmhg,
+            cabin_radiation_msv: sample.cabin_radiation_msv ?? prev.cabin_radiation_msv,
+            sleep_hours: sample.sleep_hours ?? prev.sleep_hours,
+            mood_score: sample.mood_score ?? prev.mood_score,
+          }));
+        }
+      }
+    });
+
+    void telemetryBridge.hydrateFromCloud().then((hydrated) => {
+      if (!isMounted || !hydrated) return;
+      setEarthBaselines(hydrated.earthBaselines);
+      setMissionPhase(hydrated.missionPhase);
+      if (hydrated.commsMode) {
+        setCommsMode(hydrated.commsMode);
+      }
+      if (hydrated.latestVital) {
+        setCurrentValues((prev) => ({
+          ...prev,
+          ...hydrated.latestVital,
+        }));
       }
     });
 
     return () => {
+      isMounted = false;
       unsubscribe();
     };
   }, []);
@@ -107,7 +149,7 @@ export const AppContent: React.FC = () => {
       scenario.countermeasures.circadian,
     );
 
-    telemetryBridge.broadcastCommsMode(scenario.commsMode);
+    await telemetryBridge.broadcastCommsMode(scenario.commsMode);
     await telemetryBridge.broadcastMissionPhaseChange(scenario.missionPhase);
 
     const nextVitals: VitalReadingInput = {

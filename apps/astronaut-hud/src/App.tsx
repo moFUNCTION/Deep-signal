@@ -4,6 +4,7 @@ import {
   ViewModeSwitcher,
   useAccessibility,
 } from '@aura/ui-kit';
+import { ExternalLink, SlidersHorizontal } from 'lucide-react';
 import { useAuthStore } from './store/useAuthStore';
 import { useMedicalStore } from './store/useMedicalStore';
 import { useAppwriteRealtime } from './hooks/useAppwriteRealtime';
@@ -99,6 +100,17 @@ export const App: React.FC = () => {
             </div>
 
             <HudFocusTour />
+            <a
+              href="https://suit-simulator.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-2 rounded-pill bg-sky text-white text-xs font-body font-bold shadow-sm hover:bg-sky-deep transition-all inline-flex items-center gap-1.5"
+              title="Open Suit Telemetry Simulator"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Suit Simulator</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
             <ViewModeSwitcher compact={false} />
           </div>
         </div>

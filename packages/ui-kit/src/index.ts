@@ -71,5 +71,6 @@ export { default as SkylearnInput } from './components/SkylearnInput';
 export * from './components/MetricSparkline';
 export { default as MetricSparkline } from './components/MetricSparkline';
 
-// 5. Guided Focus Tour Helpers
+// 5. Guided Focus Tour & Utility Hooks
 export * from './tokens/joyrideTheme';
+export * from './hooks/useDebounce';

@@ -31,7 +31,7 @@ export class TelemetryService {
    */
   public static async ingestVitalReading(
     reading: VitalReadingInput,
-    options?: { isOfflineMode?: boolean; commsMode?: DistanceCommsMode }
+    options?: { isOfflineMode?: boolean; commsMode?: DistanceCommsMode; forceCloudSync?: boolean }
   ): Promise<{ vitalDoc: VitalReadingInput; alertDoc: PersistedAlertDocument }> {
     const nowIso = new Date().toISOString();
     const vitalId = reading.$id || `vital_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -46,7 +46,7 @@ export class TelemetryService {
     };
 
     const commsMode = options?.commsMode || safeLocalStorageGet<DistanceCommsMode>(DB_CONFIG.STORAGE_KEYS.COMMS_MODE, 'ISS_REALTIME');
-    const isOffline = options?.isOfflineMode || commsMode === 'SOLAR_BLACKOUT';
+    const isOffline = Boolean(options?.isOfflineMode) || (commsMode === 'SOLAR_BLACKOUT' && !options?.forceCloudSync);
 
     // 1. Fetch current astronaut profile baselines and incomplete tasks
     const profile = await AuthCalibrationService.getAstronautProfile({ isOfflineMode: isOffline });

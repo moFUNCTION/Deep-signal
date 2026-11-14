@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   BiometricMetricKey,
   DEFAULT_ASTRONAUT_PREFS,
@@ -118,6 +118,18 @@ export const PreFlightCalibrationForm: React.FC<PreFlightCalibrationFormProps> =
   const [commsMode, setCommsMode] = useState<DistanceCommsMode>(initialCommsMode);
   const [isSaved, setIsSaved] = useState<boolean>(false);
 
+  useEffect(() => {
+    setBaselines(initialBaselines);
+  }, [initialBaselines]);
+
+  useEffect(() => {
+    setPhase(initialPhase);
+  }, [initialPhase]);
+
+  useEffect(() => {
+    setCommsMode(initialCommsMode);
+  }, [initialCommsMode]);
+
   const handleBaselineChange = (
     key: BiometricMetricKey,
     field: 'mean' | 'stdDev',
@@ -143,7 +155,7 @@ export const PreFlightCalibrationForm: React.FC<PreFlightCalibrationFormProps> =
 
   const handleSaveAndBroadcast = async () => {
     await telemetryBridge.broadcastBaselineChange(baselines, phase);
-    telemetryBridge.broadcastCommsMode(commsMode);
+    await telemetryBridge.broadcastCommsMode(commsMode);
     onApplyCalibration(baselines, phase, commsMode);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);

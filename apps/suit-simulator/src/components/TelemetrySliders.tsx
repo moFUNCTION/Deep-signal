@@ -11,7 +11,7 @@ import {
   TriageDiagnosisOutput,
   VitalReadingInput,
 } from '@aura/medical-engine';
-import { BigFriendlyButton, HudCard, StatusBadge } from '@aura/ui-kit';
+import { BigFriendlyButton, HudCard, StatusBadge, useDebounce } from '@aura/ui-kit';
 import {
   Activity,
   AlertOctagon,
@@ -164,7 +164,13 @@ export const TelemetrySliders: React.FC<TelemetrySlidersProps> = ({
 }) => {
   const [packetCount, setPacketCount] = useState<number>(0);
   const [lastInjectedTime, setLastInjectedTime] = useState<string | null>(null);
+  const [isSyncPending, setIsSyncPending] = useState<boolean>(false);
   const streamIntervalRef = useRef<number | null>(null);
+  const pendingDragRef = useRef<boolean>(false);
+  const latestValuesRef = useRef<VitalReadingInput>(currentValues);
+  latestValuesRef.current = currentValues;
+
+  const debouncedSliderValues = useDebounce(currentValues, 350);
 
   // Evaluate single metric in real time
   const getEvaluation = (key: MetricKey, value: number): MetricEvaluationResult => {
@@ -185,63 +191,75 @@ export const TelemetrySliders: React.FC<TelemetrySlidersProps> = ({
     incompleteTasks,
   );
 
-  // Handle individual slider change
+  // Debounced transmit for manual slider drags so Appwrite receives one clean packet after settling
+  useEffect(() => {
+    if (!pendingDragRef.current || isStreaming) return;
+    pendingDragRef.current = false;
+    setIsSyncPending(false);
+
+    void telemetryBridge.broadcastTelemetry(debouncedSliderValues);
+    setLastInjectedTime(new Date().toLocaleTimeString());
+    setPacketCount((c) => c + 1);
+  }, [debouncedSliderValues, isStreaming]);
+
+  // Handle individual slider change (UI updates instantaneously; network sync debounced 350ms)
   const handleSliderChange = (key: string, val: number) => {
     const next: VitalReadingInput = {
       ...currentValues,
+      mission_phase: missionPhase,
       [key]: val,
     };
     onChangeValues(next);
 
-    // If not streaming, immediately broadcast live sample so sliders give instant live feedback
     if (!isStreaming) {
-      telemetryBridge.broadcastTelemetry(next);
-      setLastInjectedTime(new Date().toLocaleTimeString());
-      setPacketCount((c) => c + 1);
+      pendingDragRef.current = true;
+      setIsSyncPending(true);
     }
   };
 
   // Continuous auto-streaming interval (physiological Brownian fluctuation every 2 seconds)
   useEffect(() => {
     if (isStreaming) {
+      pendingDragRef.current = false;
+      setIsSyncPending(false);
+
       streamIntervalRef.current = window.setInterval(() => {
-        // Apply tiny realistic physiological noise
+        const base = latestValuesRef.current;
         const jitter = (range: number) => (Math.random() - 0.5) * range;
 
         const next: VitalReadingInput = {
-          ...currentValues,
+          ...base,
+          mission_phase: missionPhase,
           heart_rate: Math.max(
             42,
-            Math.min(170, Math.round(currentValues.heart_rate + jitter(2))),
+            Math.min(170, Math.round(base.heart_rate + jitter(2))),
           ),
           bp_systolic: Math.max(
             80,
-            Math.min(190, Math.round(currentValues.bp_systolic + jitter(2))),
+            Math.min(190, Math.round(base.bp_systolic + jitter(2))),
           ),
           bp_diastolic: Math.max(
             45,
-            Math.min(115, Math.round(currentValues.bp_diastolic + jitter(1.5))),
+            Math.min(115, Math.round(base.bp_diastolic + jitter(1.5))),
           ),
           body_temp: Math.max(
             35.0,
-            Math.min(40.0, Math.round((currentValues.body_temp + jitter(0.04)) * 10) / 10),
+            Math.min(40.0, Math.round((base.body_temp + jitter(0.04)) * 10) / 10),
           ),
           spo2: Math.max(
             88,
-            Math.min(100, Math.round(currentValues.spo2 + (Math.random() > 0.8 ? jitter(1) : 0))),
+            Math.min(100, Math.round(base.spo2 + (Math.random() > 0.8 ? jitter(1) : 0))),
           ),
         };
 
         onChangeValues(next);
-        telemetryBridge.broadcastTelemetry(next);
+        void telemetryBridge.broadcastTelemetry(next);
         setPacketCount((c) => c + 1);
         setLastInjectedTime(new Date().toLocaleTimeString());
       }, 2000);
-    } else {
-      if (streamIntervalRef.current) {
-        clearInterval(streamIntervalRef.current);
-        streamIntervalRef.current = null;
-      }
+    } else if (streamIntervalRef.current) {
+      clearInterval(streamIntervalRef.current);
+      streamIntervalRef.current = null;
     }
 
     return () => {
@@ -249,11 +267,16 @@ export const TelemetrySliders: React.FC<TelemetrySlidersProps> = ({
         clearInterval(streamIntervalRef.current);
       }
     };
-  }, [isStreaming, currentValues, earthBaselines, missionPhase]);
+  }, [isStreaming, missionPhase, onChangeValues]);
 
   // Single manual injection
   const handleManualInject = () => {
-    telemetryBridge.broadcastTelemetry(currentValues, activeTriage);
+    pendingDragRef.current = false;
+    setIsSyncPending(false);
+    void telemetryBridge.broadcastTelemetry(
+      { ...currentValues, mission_phase: missionPhase },
+      activeTriage,
+    );
     setPacketCount((c) => c + 1);
     setLastInjectedTime(new Date().toLocaleTimeString());
   };
@@ -529,9 +552,11 @@ export const TelemetrySliders: React.FC<TelemetrySlidersProps> = ({
 
         <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-outline">
           <p className="text-xs text-ink-muted font-body">
-            {lastInjectedTime
-              ? `Last telemetry packet broadcast at ${lastInjectedTime} UTC`
-              : 'Ready to broadcast live suit telemetry across browser tabs.'}
+            {isSyncPending
+              ? 'Syncing debounced rate update to Appwrite Cloud...'
+              : lastInjectedTime
+              ? `Last telemetry packet broadcast at ${lastInjectedTime}`
+              : 'Ready to broadcast live suit telemetry via Appwrite Realtime.'}
           </p>
 
           <BigFriendlyButton

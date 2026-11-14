@@ -55,6 +55,7 @@ class TelemetryBridge {
     if (typeof window !== 'undefined' && DB_CONFIG.IS_CONFIGURED && DB_CONFIG.DATABASE_ID) {
       try {
         const channels = [
+          `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.VITALS_LOGS}.documents`,
           `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.DAILY_MISSIONS}.documents`,
           `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.EARTH_TRANSMISSIONS}.documents`,
         ];
@@ -63,7 +64,9 @@ class TelemetryBridge {
           const payload = response.payload;
           if (!payload) return;
 
-          if (response.events.some((e: string) => e.includes('.daily_missions.documents.'))) {
+          if (response.events.some((e: string) => e.includes('.vitals_logs.documents.'))) {
+            this.notifyListeners({ type: 'TELEMETRY_SAMPLE', payload });
+          } else if (response.events.some((e: string) => e.includes('.daily_missions.documents.'))) {
             const currentMissions = this.getDailyMissions();
             const updated = currentMissions.map((m: any) =>
               m.$id === payload.$id || m.task_code === payload.task_code ? { ...m, ...payload } : m,
@@ -215,9 +218,9 @@ class TelemetryBridge {
       payload: alertDoc,
     });
 
-    // Also call TelemetryService in @aura/appwrite-client if configured
+    // Always persist suit telemetry to Appwrite Cloud so HUD stays synced even during simulated SOLAR_BLACKOUT
     try {
-      await TelemetryService.ingestVitalReading(vitalDoc);
+      await TelemetryService.ingestVitalReading(vitalDoc, { forceCloudSync: true });
     } catch {
       // Offline fallback succeeded
     }
@@ -297,7 +300,79 @@ class TelemetryBridge {
 
   public broadcastCommsMode(commsMode: DistanceCommsMode) {
     safeLocalStorageSet(LOCAL_COMMS_KEY, commsMode);
-    DtnCommsService.setCommsMode(commsMode);
+    return DtnCommsService.setCommsMode(commsMode);
+  }
+
+  public async hydrateFromCloud(): Promise<{
+    earthBaselines: EarthBaselines;
+    missionPhase: MissionPhase;
+    commsMode?: DistanceCommsMode;
+    latestVital?: VitalReadingInput;
+  } | null> {
+    if (typeof window === 'undefined' || !DB_CONFIG.IS_CONFIGURED || !DB_CONFIG.DATABASE_ID) {
+      return null;
+    }
+
+    const currentProfile = this.getProfile();
+    const astronautCode = currentProfile.astronautCode || 'AST-CDR-01';
+
+    try {
+      const [missions, remoteControl, recentVitals] = await Promise.all([
+        CountermeasureService.listDailyMissions(astronautCode),
+        DtnCommsService.fetchRemoteControlState(astronautCode),
+        TelemetryService.fetchRecentVitals(astronautCode, 1),
+      ]);
+
+      if (missions && missions.length > 0) {
+        safeLocalStorageSet(LOCAL_MISSIONS_KEY, JSON.stringify(missions));
+        this.notifyListeners({ type: 'MISSIONS_UPDATED', payload: missions });
+      }
+
+      let earthBaselines: EarthBaselines =
+        currentProfile.earthBaselines || DEFAULT_ASTRONAUT_PREFS.earthBaselines;
+      let missionPhase: MissionPhase =
+        currentProfile.missionPhase || DEFAULT_ASTRONAUT_PREFS.missionPhase;
+      let commsMode: DistanceCommsMode | undefined;
+
+      if (remoteControl) {
+        if (remoteControl.earthBaselines) {
+          earthBaselines = remoteControl.earthBaselines;
+        }
+        if (remoteControl.missionPhase) {
+          missionPhase = remoteControl.missionPhase;
+        }
+        if (remoteControl.commsMode) {
+          commsMode = remoteControl.commsMode;
+          safeLocalStorageSet(LOCAL_COMMS_KEY, commsMode);
+          this.notifyListeners({
+            type: 'COMMS_MODE_UPDATED',
+            payload: { commsMode },
+          });
+        }
+
+        const nextProfile = {
+          ...currentProfile,
+          earthBaselines,
+          missionPhase,
+        };
+        safeLocalStorageSet(LOCAL_PREFS_KEY, JSON.stringify(nextProfile));
+        this.notifyListeners({ type: 'PREFS_UPDATED', payload: nextProfile });
+      }
+
+      const latestVital = recentVitals?.[0];
+      if (latestVital) {
+        this.notifyListeners({ type: 'TELEMETRY_SAMPLE', payload: latestVital });
+      }
+
+      return {
+        earthBaselines,
+        missionPhase,
+        commsMode,
+        latestVital,
+      };
+    } catch {
+      return null;
+    }
   }
 
   public async broadcastTaskCompletion(taskCode: string, isCompleted: boolean) {
