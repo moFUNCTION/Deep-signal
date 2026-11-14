@@ -87,17 +87,21 @@ function readEnv(key: string): string | undefined {
 
 export const DB_CONFIG = {
   get ENDPOINT(): string {
-    return readEnv('VITE_APPWRITE_ENDPOINT') || 'https://cloud.appwrite.io/v1';
+    return readEnv('VITE_APPWRITE_ENDPOINT') || 'https://fra.cloud.appwrite.io/v1';
   },
   get PROJECT_ID(): string {
-    return readEnv('VITE_APPWRITE_PROJECT_ID') || 'aura_nasa_2026';
+    return readEnv('VITE_APPWRITE_PROJECT_ID') || '6af87b750015891937c0';
   },
   get DATABASE_ID(): string {
     return readEnv('VITE_APPWRITE_DB_ID') || 'AURA_Medical_DB';
   },
   get IS_CONFIGURED(): boolean {
-    const pid = readEnv('VITE_APPWRITE_PROJECT_ID');
-    return Boolean(pid && pid !== 'aura_nasa_2026' && pid !== 'your_project_id');
+    // Keep Node unit tests deterministic offline unless explicit env var is provided.
+    if (typeof window === 'undefined' && !readEnv('VITE_APPWRITE_PROJECT_ID')) {
+      return false;
+    }
+    const pid = this.PROJECT_ID;
+    return Boolean(pid && pid !== 'your_project_id' && pid !== 'aura_nasa_2026');
   },
   COLLECTIONS: {
     VITALS_LOGS: 'vitals_logs',

@@ -5,9 +5,22 @@
 
 import {
   DB_CONFIG,
+  DEFAULT_ASTRONAUT_PREFS,
   DistanceCommsMode,
+  EarthBaselines,
   LIGHT_TIME_DELAY_SECONDS,
+  MissionPhase,
 } from '../config';
+
+export const CONTROL_SYNC_ALERT_ID = 'CONTROL_STATE_SYNC';
+
+export interface RemoteControlState {
+  kind: 'CONTROL_STATE_SYNC';
+  missionPhase?: MissionPhase;
+  earthBaselines?: EarthBaselines;
+  commsMode?: DistanceCommsMode;
+  updatedAt: number;
+}
 import {
   databases,
   storage,
@@ -43,7 +56,7 @@ export class DtnCommsService {
   }
 
   /**
-   * Sets the DTN distance communications mode and notifies all tabs.
+   * Sets the DTN distance communications mode and notifies all tabs + Appwrite Cloud.
    */
   public static setCommsMode(mode: DistanceCommsMode): void {
     safeLocalStorageSet(DB_CONFIG.STORAGE_KEYS.COMMS_MODE, mode);
@@ -51,6 +64,98 @@ export class DtnCommsService {
       type: 'COMMS_MODE_UPDATED',
       payload: { commsMode: mode },
     });
+
+    if (DB_CONFIG.IS_CONFIGURED) {
+      const prefs = safeLocalStorageGet(DB_CONFIG.STORAGE_KEYS.PREFS, DEFAULT_ASTRONAUT_PREFS);
+      void this.syncRemoteControlState(prefs.astronautCode || 'AST-CDR-01', {
+        commsMode: mode,
+      });
+    }
+  }
+
+  /**
+   * Upserts the cross-origin mission control state document in `earth_transmissions`
+   * so missionPhase, earthBaselines, and commsMode sync via Appwrite Realtime without requiring login.
+   */
+  public static async syncRemoteControlState(
+    astronautId: string = 'AST-CDR-01',
+    partial: {
+      missionPhase?: MissionPhase;
+      earthBaselines?: EarthBaselines;
+      commsMode?: DistanceCommsMode;
+    }
+  ): Promise<void> {
+    if (!DB_CONFIG.IS_CONFIGURED) return;
+
+    const docId = `sync_ctrl_${astronautId}`.slice(0, 36);
+    const localPrefs = safeLocalStorageGet(DB_CONFIG.STORAGE_KEYS.PREFS, DEFAULT_ASTRONAUT_PREFS);
+    const localComms = this.getCommsMode();
+
+    const statePayload: RemoteControlState = {
+      kind: 'CONTROL_STATE_SYNC',
+      missionPhase: partial.missionPhase || localPrefs.missionPhase,
+      earthBaselines: partial.earthBaselines || localPrefs.earthBaselines,
+      commsMode: partial.commsMode || localComms,
+      updatedAt: Date.now(),
+    };
+
+    const docBody = {
+      astronaut_id: astronautId.slice(0, 36),
+      alert_id: CONTROL_SYNC_ALERT_ID,
+      distance_mode: statePayload.commsMode || 'ISS_REALTIME',
+      delay_seconds: 0,
+      status: 'received_by_earth',
+      report_file_id: null,
+      telemetry_json: JSON.stringify(statePayload).slice(0, 5000),
+    };
+
+    try {
+      await databases.updateDocument(
+        DB_CONFIG.DATABASE_ID,
+        DB_CONFIG.COLLECTIONS.EARTH_TRANSMISSIONS,
+        docId,
+        docBody
+      );
+    } catch (err: any) {
+      if (err?.code === 404) {
+        try {
+          await databases.createDocument(
+            DB_CONFIG.DATABASE_ID,
+            DB_CONFIG.COLLECTIONS.EARTH_TRANSMISSIONS,
+            docId,
+            docBody
+          );
+        } catch (createErr) {
+          console.warn('[DtnCommsService] Failed to create remote control sync doc:', createErr);
+        }
+      } else {
+        console.warn('[DtnCommsService] Failed to update remote control sync doc:', err);
+      }
+    }
+  }
+
+  /**
+   * Fetches the latest shared control state from Appwrite Cloud if configured.
+   */
+  public static async fetchRemoteControlState(
+    astronautId: string = 'AST-CDR-01'
+  ): Promise<RemoteControlState | null> {
+    if (!DB_CONFIG.IS_CONFIGURED) return null;
+    const docId = `sync_ctrl_${astronautId}`.slice(0, 36);
+
+    try {
+      const doc: any = await databases.getDocument(
+        DB_CONFIG.DATABASE_ID,
+        DB_CONFIG.COLLECTIONS.EARTH_TRANSMISSIONS,
+        docId
+      );
+      if (doc?.telemetry_json) {
+        return JSON.parse(doc.telemetry_json) as RemoteControlState;
+      }
+    } catch {
+      // Document may not exist yet before first sync event
+    }
+    return null;
   }
 
   /**
@@ -117,15 +222,23 @@ export class DtnCommsService {
     // Sync to Appwrite if configured and not in solar blackout
     if (DB_CONFIG.IS_CONFIGURED && record.distance_mode !== 'SOLAR_BLACKOUT') {
       try {
-        const { $id, $createdAt, ...payload } = fullRecord;
+        const payload = {
+          astronaut_id: String(fullRecord.astronaut_id || 'AST-CDR-01').slice(0, 36),
+          alert_id: String(fullRecord.alert_id).slice(0, 36),
+          distance_mode: fullRecord.distance_mode,
+          delay_seconds: Math.min(3600, Math.max(0, Math.round(Number(fullRecord.delay_seconds || 0)))),
+          status: fullRecord.status,
+          report_file_id: fullRecord.report_file_id ? String(fullRecord.report_file_id).slice(0, 64) : null,
+          telemetry_json: String(fullRecord.telemetry_json || '{}').slice(0, 5000),
+        };
         await databases.createDocument(
           DB_CONFIG.DATABASE_ID,
           DB_CONFIG.COLLECTIONS.EARTH_TRANSMISSIONS,
-          transmissionId,
+          transmissionId.slice(0, 36),
           payload
         );
-      } catch {
-        // Degrades gracefully offline
+      } catch (err) {
+        console.warn('[DtnCommsService] Failed to persist Earth transmission:', err);
       }
     }
 
@@ -181,7 +294,9 @@ export class DtnCommsService {
         );
 
         if (response && response.documents.length > 0) {
-          return response.documents.map((doc: any) => ({
+          return response.documents
+            .filter((doc: any) => doc.alert_id !== CONTROL_SYNC_ALERT_ID)
+            .map((doc: any) => ({
             $id: doc.$id,
             $createdAt: doc.$createdAt,
             astronaut_id: doc.astronaut_id,

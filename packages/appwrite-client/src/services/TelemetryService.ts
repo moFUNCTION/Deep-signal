@@ -100,23 +100,54 @@ export class TelemetryService {
     // 6. Asynchronous Sync to Appwrite Cloud (only when configured and online)
     if (DB_CONFIG.IS_CONFIGURED && !isOffline) {
       try {
-        const { $id, $createdAt, ...vitalPayload } = vitalDoc;
+        const vitalPayload = {
+          astronaut_id: String(vitalDoc.astronaut_id || 'AST-CDR-01').slice(0, 36),
+          mission_phase: vitalDoc.mission_phase || 'DEEP_SPACE_CRUISE',
+          heart_rate: Math.round(Number(vitalDoc.heart_rate)),
+          bp_systolic: Math.round(Number(vitalDoc.bp_systolic)),
+          bp_diastolic: Math.round(Number(vitalDoc.bp_diastolic)),
+          blood_glucose: Number(Number(vitalDoc.blood_glucose).toFixed(2)),
+          body_temp: Number(Number(vitalDoc.body_temp).toFixed(2)),
+          spo2: Math.min(100, Math.max(50, Math.round(Number(vitalDoc.spo2)))),
+          sleep_hours: Number(Number(vitalDoc.sleep_hours).toFixed(2)),
+          mood_score: Math.min(10, Math.max(1, Math.round(Number(vitalDoc.mood_score)))),
+          cabin_co2_mmhg: Number(Number(vitalDoc.cabin_co2_mmhg).toFixed(2)),
+          cabin_radiation_msv: Number(Number(vitalDoc.cabin_radiation_msv).toFixed(3)),
+          ingestion_source: vitalDoc.ingestion_source || 'LIVE_STREAM',
+          edge_alert_id: String(edgeAlertId).slice(0, 36),
+        };
+
         await databases.createDocument(
           DB_CONFIG.DATABASE_ID,
           DB_CONFIG.COLLECTIONS.VITALS_LOGS,
-          vitalId,
+          vitalId.slice(0, 36),
           vitalPayload
         );
 
-        const { $id: aId, $createdAt: aCreated, ...alertPayload } = alertDoc;
+        const alertPayload = {
+          astronaut_id: String(alertDoc.astronaut_id || 'AST-CDR-01').slice(0, 36),
+          vital_log_id: String(vitalId).slice(0, 36),
+          affected_system: alertDoc.affected_system,
+          severity: alertDoc.severity,
+          diagnosis_code: String(alertDoc.diagnosis_code).slice(0, 64),
+          diagnosis_title: String(alertDoc.diagnosis_title).slice(0, 255),
+          simple_explanation: String(alertDoc.simple_explanation).slice(0, 1000),
+          action_protocol: (alertDoc.action_protocol || []).map((step) =>
+            String(step).slice(0, 500)
+          ),
+          guide_file_id: alertDoc.guide_file_id ? String(alertDoc.guide_file_id).slice(0, 64) : null,
+          notify_earth: Boolean(alertDoc.notify_earth),
+          is_resolved: Boolean(alertDoc.is_resolved),
+        };
+
         await databases.createDocument(
           DB_CONFIG.DATABASE_ID,
           DB_CONFIG.COLLECTIONS.TRIAGE_ALERTS,
-          edgeAlertId,
+          edgeAlertId.slice(0, 36),
           alertPayload
         );
-      } catch {
-        // Degrades gracefully offline
+      } catch (err) {
+        console.warn('[TelemetryService] Appwrite Cloud sync failed, using local buffer:', err);
       }
     }
 

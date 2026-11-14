@@ -10,7 +10,6 @@ import {
   Wind,
   X,
 } from 'lucide-react';
-import { DB_CONFIG, storage } from '@aura/appwrite-client';
 import {
   STORAGE_VISUAL_GUIDES,
   type VisualGuideMetadata,
@@ -104,12 +103,10 @@ export const GuidedExamModal: React.FC = () => {
 
   const [calibrated, setCalibrated] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
-  const [remotePreviewFailed, setRemotePreviewFailed] = useState(false);
 
   useEffect(() => {
     setCalibrated(false);
     setCompletedSteps({});
-    setRemotePreviewFailed(false);
   }, [activeGuideId, isExamModalOpen]);
 
   if (!isExamModalOpen) return null;
@@ -128,17 +125,6 @@ export const GuidedExamModal: React.FC = () => {
 
   const guide: VisualGuideMetadata =
     (activeGuideId && STORAGE_VISUAL_GUIDES[activeGuideId]) || defaultGuide;
-
-  const cloudImageUrl =
-    DB_CONFIG.IS_CONFIGURED && !remotePreviewFailed
-      ? (() => {
-          try {
-            return String(storage.getFileView(DB_CONFIG.BUCKETS.MEDICAL_GUIDES, guide.fileId));
-          } catch {
-            return null;
-          }
-        })()
-      : null;
 
   const handleStepToggle = (index: number) => {
     setCompletedSteps((prev) => ({
@@ -191,18 +177,9 @@ export const GuidedExamModal: React.FC = () => {
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6">
-          {/* Storage Visual or Clean Local Fallback Schematic */}
+          {/* Local Clinical Vector Schematic */}
           <div className="p-5 rounded-card bg-surface border border-outline">
-            {cloudImageUrl ? (
-              <img
-                src={cloudImageUrl}
-                alt={guide.title}
-                onError={() => setRemotePreviewFailed(true)}
-                className="w-full max-h-56 object-contain rounded-btn mx-auto"
-              />
-            ) : (
-              renderGuideDiagram(guide.fileId)
-            )}
+            {renderGuideDiagram(guide.fileId)}
           </div>
 
           {/* Step 1: Hardware Calibration */}

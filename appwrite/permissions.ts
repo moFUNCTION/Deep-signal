@@ -13,9 +13,11 @@ export type TeamId = (typeof TEAM_IDS)[keyof typeof TEAM_IDS];
 export const FUNCTION_API_SCOPES = [
   'databases.read',
   'databases.write',
+  'documents.read',
+  'documents.write',
   'users.read',
-  'storage.read',
-  'storage.write',
+  'files.read',
+  'files.write',
 ] as const;
 
 export interface PermissionDefinition {

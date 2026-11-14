@@ -1,7 +1,7 @@
 {
-  "projectId": "aura_nasa_2026",
-  "projectName": "AURA - Autonomous Unified Recovery & Assessment",
-  "endpoint": "https://cloud.appwrite.io/v1",
+  "projectId": "6af87b750015891937c0",
+  "projectName": "Aura-Space",
+  "endpoint": "https://fra.cloud.appwrite.io/v1",
   "teams": [
     {
       "$id": "astronaut_crew",
@@ -502,7 +502,7 @@
       "name": "Space Medical Visual Guides",
       "enabled": true,
       "fileSecurity": false,
-      "maximumFileSize": 52428800,
+      "maximumFileSize": 50000000,
       "allowedFileExtensions": [
         "png",
         "jpg",
@@ -553,7 +553,7 @@
     {
       "$id": "triage-cloud-fn",
       "name": "Autonomous Space Medical Triage Engine",
-      "runtime": "node-21.0",
+      "runtime": "node-22",
       "path": "appwrite/functions/triage-cloud-fn",
       "entrypoint": "src/main.js",
       "commands": "npm install",
@@ -569,9 +569,11 @@
       "scopes": [
         "databases.read",
         "databases.write",
+        "documents.read",
+        "documents.write",
         "users.read",
-        "storage.read",
-        "storage.write"
+        "files.read",
+        "files.write"
       ]
     }
   ]

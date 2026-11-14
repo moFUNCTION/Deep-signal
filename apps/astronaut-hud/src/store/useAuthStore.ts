@@ -30,6 +30,7 @@ interface AuthState {
   loadProfile: () => Promise<void>;
   setMissionPhase: (phase: MissionPhase) => Promise<void>;
   updateBaselines: (baselines: EarthBaselines) => Promise<void>;
+  applyRemoteProfile: (partial: Partial<Pick<AstronautProfileState, 'missionPhase' | 'earthBaselines'>>) => void;
   setViewMode: (mode: ViewMode) => void;
   toggleViewMode: () => void;
   setProfile: (profile: AstronautProfileState) => void;
@@ -148,5 +149,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setProfile: (profile: AstronautProfileState) => {
     set({ profile });
+  },
+
+  applyRemoteProfile: (partial) => {
+    const current = get().profile;
+    const next: AstronautProfileState = {
+      ...current,
+      ...(partial.missionPhase ? { missionPhase: partial.missionPhase } : {}),
+      ...(partial.earthBaselines ? { earthBaselines: partial.earthBaselines } : {}),
+      lastSyncTimestamp: new Date().toISOString(),
+    };
+    set({ profile: next });
+    try {
+      localStorage.setItem('aura_astronaut_prefs', JSON.stringify(next));
+    } catch {
+      // ignore storage errors
+    }
   },
 }));

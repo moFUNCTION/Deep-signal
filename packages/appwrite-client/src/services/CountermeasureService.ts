@@ -143,8 +143,8 @@ export class CountermeasureService {
             streak_days: updatedTask.streak_days,
           }
         );
-      } catch {
-        // Offline fallback: update queued locally
+      } catch (err) {
+        console.warn('[CountermeasureService] Appwrite Cloud update failed, kept locally:', err);
       }
     }
 

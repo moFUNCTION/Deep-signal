@@ -5,7 +5,6 @@ import {
   DtnCommsService,
   LIGHT_TIME_DELAY_SECONDS,
   TelemetryService,
-  broadcastBusMessage,
   type EarthTransmissionRecord,
 } from '@aura/appwrite-client';
 import { useAuthStore } from './useAuthStore';
@@ -37,6 +36,7 @@ export interface OfflineSyncState {
   // Actions
   initializeQueue: () => Promise<void>;
   setCommsMode: (mode: DistanceCommsMode) => void;
+  applyRemoteCommsMode: (mode: DistanceCommsMode) => void;
   queueOfflineVital: (vital: VitalReadingInput) => Promise<void>;
   enqueueMedicalDossier: (payload: EnqueueDossierPayload) => Promise<LocalDtnRecord>;
   tickTransmissions: () => void;
@@ -90,10 +90,16 @@ export const useOfflineSyncStore = create<OfflineSyncState>((set, get) => ({
       void get().flushOfflineQueue();
     }
 
-    broadcastBusMessage({
-      type: 'COMMS_MODE_UPDATED',
-      payload: { commsMode: mode },
-    });
+    DtnCommsService.setCommsMode(mode);
+  },
+
+  applyRemoteCommsMode: (mode: DistanceCommsMode) => {
+    if (get().commsMode === mode) return;
+    set({ commsMode: mode });
+
+    if (mode !== 'SOLAR_BLACKOUT') {
+      void get().flushOfflineQueue();
+    }
   },
 
   queueOfflineVital: async (vital: VitalReadingInput) => {

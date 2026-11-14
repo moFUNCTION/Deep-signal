@@ -13,7 +13,9 @@ import {
 } from '@aura/medical-engine';
 import {
   CountermeasureService,
+  DB_CONFIG,
   DEFAULT_DAILY_MISSIONS,
+  DtnCommsService,
   broadcastBusMessage,
   TelemetryService,
   TriageService,
@@ -122,11 +124,39 @@ export const useMedicalStore = create<MedicalState>((set, get) => {
 
     initializeMedicalState: async () => {
       try {
-        const missions = await CountermeasureService.listDailyMissions(
-          useAuthStore.getState().profile.astronautId,
-        );
-        const storedHistory = TelemetryService.getLocalHistory();
-        const activeAlert = TelemetryService.getActiveAlert();
+        const astronautId = useAuthStore.getState().profile.astronautId || 'AST-CDR-01';
+
+        const [missions, remoteControl, remoteVitals, remoteAlerts] = await Promise.all([
+          CountermeasureService.listDailyMissions(astronautId),
+          DB_CONFIG.IS_CONFIGURED
+            ? DtnCommsService.fetchRemoteControlState(astronautId)
+            : Promise.resolve(null),
+          DB_CONFIG.IS_CONFIGURED
+            ? TelemetryService.fetchRecentVitals(astronautId, 20)
+            : Promise.resolve([]),
+          DB_CONFIG.IS_CONFIGURED
+            ? TriageService.getActiveAlerts(astronautId)
+            : Promise.resolve([]),
+        ]);
+
+        if (remoteControl) {
+          if (remoteControl.missionPhase || remoteControl.earthBaselines) {
+            useAuthStore.getState().applyRemoteProfile({
+              missionPhase: remoteControl.missionPhase,
+              earthBaselines: remoteControl.earthBaselines,
+            });
+          }
+          if (remoteControl.commsMode) {
+            useOfflineSyncStore.getState().applyRemoteCommsMode(remoteControl.commsMode);
+          }
+        }
+
+        const storedHistory =
+          remoteVitals.length > 0
+            ? [...remoteVitals].reverse()
+            : TelemetryService.getLocalHistory();
+        const activeAlert =
+          remoteAlerts.length > 0 ? remoteAlerts[0] : TelemetryService.getActiveAlert();
 
         const currentVital =
           storedHistory.length > 0

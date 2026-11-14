@@ -10,8 +10,12 @@ import {
 } from '@aura/medical-engine';
 import {
   AuthCalibrationService,
+  CONTROL_SYNC_ALERT_ID,
   CountermeasureService,
+  DB_CONFIG,
+  DtnCommsService,
   TelemetryService,
+  appwriteClient,
   broadcastBusMessage,
   localBus,
   safeLocalStorageSet,
@@ -45,13 +49,68 @@ class TelemetryBridge {
   constructor() {
     localBus.subscribe((msg: BusMessage) => {
       const event = msg as unknown as TelemetryBusEvent;
-      this.messageListeners.forEach((listener) => {
-        try {
-          listener(event);
-        } catch (err) {
-          console.error('Error in telemetry bus listener:', err);
-        }
-      });
+      this.notifyListeners(event);
+    });
+
+    if (typeof window !== 'undefined' && DB_CONFIG.IS_CONFIGURED && DB_CONFIG.DATABASE_ID) {
+      try {
+        const channels = [
+          `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.DAILY_MISSIONS}.documents`,
+          `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.EARTH_TRANSMISSIONS}.documents`,
+        ];
+
+        appwriteClient.subscribe(channels, (response: any) => {
+          const payload = response.payload;
+          if (!payload) return;
+
+          if (response.events.some((e: string) => e.includes('.daily_missions.documents.'))) {
+            const currentMissions = this.getDailyMissions();
+            const updated = currentMissions.map((m: any) =>
+              m.$id === payload.$id || m.task_code === payload.task_code ? { ...m, ...payload } : m,
+            );
+            localStorage.setItem(LOCAL_MISSIONS_KEY, JSON.stringify(updated));
+            this.notifyListeners({ type: 'MISSIONS_UPDATED', payload: updated });
+          } else if (
+            response.events.some((e: string) => e.includes('.earth_transmissions.documents.')) &&
+            payload.alert_id === CONTROL_SYNC_ALERT_ID &&
+            payload.telemetry_json
+          ) {
+            try {
+              const remote = JSON.parse(payload.telemetry_json);
+              const currentProfile = this.getProfile();
+              const nextProfile = {
+                ...currentProfile,
+                ...(remote.missionPhase ? { missionPhase: remote.missionPhase } : {}),
+                ...(remote.earthBaselines ? { earthBaselines: remote.earthBaselines } : {}),
+              };
+              localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify(nextProfile));
+              this.notifyListeners({ type: 'PREFS_UPDATED', payload: nextProfile });
+
+              if (remote.commsMode) {
+                safeLocalStorageSet(LOCAL_COMMS_KEY, remote.commsMode);
+                this.notifyListeners({
+                  type: 'COMMS_MODE_UPDATED',
+                  payload: { commsMode: remote.commsMode },
+                });
+              }
+            } catch {
+              // ignore malformed control payload
+            }
+          }
+        });
+      } catch {
+        // Offline / unconfigured fallback handled cleanly
+      }
+    }
+  }
+
+  private notifyListeners(event: TelemetryBusEvent): void {
+    this.messageListeners.forEach((listener) => {
+      try {
+        listener(event);
+      } catch (err) {
+        console.error('Error in telemetry bus listener:', err);
+      }
     });
   }
 
@@ -116,7 +175,6 @@ class TelemetryBridge {
       $id: vitalId,
       edge_alert_id: alertId,
       $createdAt: timestamp,
-      timestamp: Date.now(),
     };
 
     const alertDoc = {
@@ -239,11 +297,7 @@ class TelemetryBridge {
 
   public broadcastCommsMode(commsMode: DistanceCommsMode) {
     safeLocalStorageSet(LOCAL_COMMS_KEY, commsMode);
-
-    this.postMessage({
-      type: 'COMMS_MODE_UPDATED',
-      payload: { commsMode },
-    });
+    DtnCommsService.setCommsMode(commsMode);
   }
 
   public async broadcastTaskCompletion(taskCode: string, isCompleted: boolean) {

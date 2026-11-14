@@ -10,14 +10,15 @@ export default async function ({ req, res, log, error }) {
   const endpoint =
     process.env.APPWRITE_FUNCTION_ENDPOINT ||
     process.env.APPWRITE_ENDPOINT ||
-    'https://cloud.appwrite.io/v1';
+    'https://fra.cloud.appwrite.io/v1';
   const projectId =
     process.env.APPWRITE_FUNCTION_PROJECT_ID ||
     process.env.APPWRITE_PROJECT_ID ||
-    'aura_nasa_2026';
+    '6af87b750015891937c0';
   const apiKey =
     process.env.APPWRITE_FUNCTION_API_KEY ||
-    process.env.APPWRITE_API_KEY;
+    process.env.APPWRITE_API_KEY ||
+    req.headers?.['x-appwrite-key'];
   const dbId = process.env.AURA_DB_ID || 'AURA_Medical_DB';
 
   log(`AURA Triage Function triggered for project ${projectId}`);

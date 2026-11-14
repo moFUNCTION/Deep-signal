@@ -17,6 +17,7 @@ import {
   safeLocalStorageGet,
   safeLocalStorageSet,
 } from '../client';
+import { DtnCommsService } from './DtnCommsService';
 
 export class AuthCalibrationService {
   /**
@@ -142,12 +143,17 @@ export class AuthCalibrationService {
       payload: profile,
     });
 
-    // 3. Attempt async Appwrite account prefs update (only when cloud project configured)
+    // 3. Sync shared profile/phase control state via Appwrite Realtime + optional Account Prefs
     if (DB_CONFIG.IS_CONFIGURED) {
+      void DtnCommsService.syncRemoteControlState(profile.astronautCode || 'AST-CDR-01', {
+        missionPhase: profile.missionPhase,
+        earthBaselines: profile.earthBaselines,
+      });
+
       try {
         await account.updatePrefs(profile);
       } catch {
-        // Degrades gracefully offline
+        // Account session optional; shared control doc handles cross-origin realtime sync
       }
     }
 

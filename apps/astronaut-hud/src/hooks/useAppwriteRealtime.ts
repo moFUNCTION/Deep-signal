@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import {
-  appwriteClient,
+  CONTROL_SYNC_ALERT_ID,
   DB_CONFIG,
+  appwriteClient,
   localBus,
+  type DailyMissionDocument,
 } from '@aura/appwrite-client';
 import type { DistanceCommsMode, MissionPhase } from '@aura/medical-engine';
 import { useAuthStore } from '../store/useAuthStore';
@@ -81,7 +83,7 @@ export function useAppwriteRealtime(): RealtimeStatus {
         case 'BASELINE_CHANGE': {
           const baselines = data.payload?.earthBaselines || data.payload;
           if (baselines) {
-            useAuthStore.getState().updateBaselines(baselines);
+            useAuthStore.getState().applyRemoteProfile({ earthBaselines: baselines });
           }
           break;
         }
@@ -89,7 +91,7 @@ export function useAppwriteRealtime(): RealtimeStatus {
         case 'MISSION_PHASE_CHANGE': {
           const phase = data.payload?.missionPhase || data.payload?.phase;
           if (phase) {
-            useAuthStore.getState().setMissionPhase(phase as MissionPhase);
+            useAuthStore.getState().applyRemoteProfile({ missionPhase: phase as MissionPhase });
           }
           break;
         }
@@ -97,7 +99,10 @@ export function useAppwriteRealtime(): RealtimeStatus {
         case 'PREFS_UPDATED': {
           const profile = data.payload;
           if (profile) {
-            useAuthStore.getState().setProfile(profile);
+            useAuthStore.getState().applyRemoteProfile({
+              missionPhase: profile.missionPhase,
+              earthBaselines: profile.earthBaselines,
+            });
           }
           break;
         }
@@ -105,7 +110,7 @@ export function useAppwriteRealtime(): RealtimeStatus {
         case 'COMMS_MODE_UPDATED': {
           const mode = data.payload?.commsMode || data.payload?.distanceMode || data.payload?.mode;
           if (mode) {
-            useOfflineSyncStore.getState().setCommsMode(mode as DistanceCommsMode);
+            useOfflineSyncStore.getState().applyRemoteCommsMode(mode as DistanceCommsMode);
           }
           break;
         }
@@ -135,6 +140,7 @@ export function useAppwriteRealtime(): RealtimeStatus {
             `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.VITALS_LOGS}.documents`,
             `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.TRIAGE_ALERTS}.documents`,
             `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.DAILY_MISSIONS}.documents`,
+            `databases.${DB_CONFIG.DATABASE_ID}.collections.${DB_CONFIG.COLLECTIONS.EARTH_TRANSMISSIONS}.documents`,
           ];
 
           unsubscribeAppwrite = appwriteClient.subscribe(channels, (response) => {
@@ -146,26 +152,62 @@ export function useAppwriteRealtime(): RealtimeStatus {
 
             // Vitals document created
             if (response.events.some((e) => e.includes('.vitals_logs.documents.'))) {
+              if (payload.mission_phase) {
+                useAuthStore.getState().applyRemoteProfile({
+                  missionPhase: payload.mission_phase as MissionPhase,
+                });
+              }
               useMedicalStore.getState().applyIngestedTelemetry(payload);
             }
             // Alert created or updated
             else if (response.events.some((e) => e.includes('.triage_alerts.documents.'))) {
-              if (payload.is_resolved) {
-                useMedicalStore.setState({ activeAlert: null, selectedSystem: null });
-              } else {
-                useMedicalStore.setState({
-                  activeAlert: payload,
-                  selectedSystem: payload.affected_system,
-                });
-              }
+              const isNominalOrResolved =
+                Boolean(payload.is_resolved) ||
+                payload.severity === 'green' ||
+                payload.affected_system === 'nominal';
+              useMedicalStore.setState({
+                activeAlert: isNominalOrResolved ? null : payload,
+                selectedSystem: isNominalOrResolved ? null : payload.affected_system,
+              });
             }
             // Mission updated
             else if (response.events.some((e) => e.includes('.daily_missions.documents.'))) {
               const currentMissions = useMedicalStore.getState().dailyMissions;
-              const updated = currentMissions.map((m) => (m.$id === payload.$id ? payload : m));
+              const exists = currentMissions.some(
+                (m) => m.$id === payload.$id || m.task_code === payload.task_code,
+              );
+              const updated: DailyMissionDocument[] = exists
+                ? currentMissions.map((m) =>
+                    m.$id === payload.$id || m.task_code === payload.task_code
+                      ? { ...m, ...payload }
+                      : m,
+                  )
+                : [...currentMissions, payload];
               useMedicalStore.setState({ dailyMissions: updated });
+              const currentVital = useMedicalStore.getState().currentVital;
+              useMedicalStore.getState().applyIngestedTelemetry(currentVital);
+            }
+            // Cross-origin control state sync via earth_transmissions
+            else if (response.events.some((e) => e.includes('.earth_transmissions.documents.'))) {
+              if (payload.alert_id === CONTROL_SYNC_ALERT_ID && payload.telemetry_json) {
+                try {
+                  const remote = JSON.parse(payload.telemetry_json);
+                  if (remote.missionPhase || remote.earthBaselines) {
+                    useAuthStore.getState().applyRemoteProfile({
+                      missionPhase: remote.missionPhase,
+                      earthBaselines: remote.earthBaselines,
+                    });
+                  }
+                  if (remote.commsMode) {
+                    useOfflineSyncStore.getState().applyRemoteCommsMode(remote.commsMode);
+                  }
+                } catch {
+                  // Ignore malformed sync payload
+                }
+              }
             }
           });
+          setIsAppwriteConnected(true);
         }
       } catch (err) {
         console.info('Appwrite Realtime WebSocket offline or unconfigured, utilizing local bus.', err);
