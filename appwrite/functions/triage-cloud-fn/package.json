@@ -1,0 +1,14 @@
+{
+  "name": "triage-cloud-fn",
+  "version": "1.0.0",
+  "description": "AURA Serverless Space Medicine Autonomous Triage Cloud Function",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "node-appwrite": "^14.0.0"
+  }
+}

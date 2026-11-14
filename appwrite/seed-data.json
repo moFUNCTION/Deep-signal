@@ -1,0 +1,123 @@
+{
+  "defaultAstronaut": {
+    "astronautCode": "AST-CDR-01",
+    "fullName": "Cmdr. Tariq Al-Mansoor",
+    "bloodType": "O+",
+    "missionPhase": "EARLY_ORBIT_ADAPTATION",
+    "earthBaselines": {
+      "heart_rate": {
+        "mean": 56,
+        "stdDev": 4
+      },
+      "bp_systolic": {
+        "mean": 114,
+        "stdDev": 7
+      },
+      "bp_diastolic": {
+        "mean": 72,
+        "stdDev": 5
+      },
+      "blood_glucose": {
+        "mean": 90,
+        "stdDev": 8
+      },
+      "body_temp": {
+        "mean": 36.7,
+        "stdDev": 0.25
+      },
+      "spo2": {
+        "mean": 98,
+        "stdDev": 1
+      }
+    }
+  },
+  "dailyMissions": [
+    {
+      "$id": "task_hydration_01",
+      "astronaut_id": "AST-CDR-01",
+      "task_code": "HYDRATION_2500ML",
+      "task_title": "Electrolyte Hydration Target (2500 mL)",
+      "target_system": "cardiovascular",
+      "points_value": 35,
+      "is_completed": true,
+      "streak_days": 14
+    },
+    {
+      "$id": "task_ared_02",
+      "astronaut_id": "AST-CDR-01",
+      "task_code": "ARED_WORKOUT",
+      "task_title": "ARED Resistive Exercise (60 Min Load)",
+      "target_system": "musculoskeletal",
+      "points_value": 40,
+      "is_completed": true,
+      "streak_days": 11
+    },
+    {
+      "$id": "task_circadian_03",
+      "astronaut_id": "AST-CDR-01",
+      "task_code": "CIRCADIAN_LIGHT_SYNC",
+      "task_title": "2700K Amber Circadian Visor Protocol",
+      "target_system": "nervous",
+      "points_value": 25,
+      "is_completed": true,
+      "streak_days": 9
+    }
+  ],
+  "medicalGuides": [
+    {
+      "fileId": "guide_co2_airflow_check",
+      "title": "Microgravity CO2 Pocket Dispersion & Fan Alignment",
+      "durationSec": 45,
+      "equipmentLocation": "Crew Quarters Port Bulkhead - Rack B2",
+      "fallbackSteps": [
+        "Translate immediately 2 meters away from your current work/sleep station.",
+        "Switch Personal Ventilation Fan (PVF) to HIGH (3000 RPM) and angle nozzle 45 degrees across face.",
+        "Verify CDRA (Carbon Dioxide Removal Assembly) indicator light is solid green."
+      ]
+    },
+    {
+      "fileId": "guide_zero_g_bp_cuff",
+      "title": "Zero-G Sphygmomanometer Calibration & AstroRad Donning",
+      "durationSec": 60,
+      "equipmentLocation": "Crew Medical Restraint System (CMRS) - Locker M1",
+      "fallbackSteps": [
+        "Enter the Crew Storm Shelter lined with polyethylene water bags.",
+        "Secure the AstroRad vest around torso and pelvis.",
+        "Fasten the automated brachial cuff on left upper arm and keep arm tethered at heart level."
+      ]
+    },
+    {
+      "fileId": "guide_hydration_electrolyte",
+      "title": "Potable Water Dispenser (PWD) Electrolyte Reconstitution",
+      "durationSec": 30,
+      "equipmentLocation": "Galley Node 1 - Ambient Water Port",
+      "fallbackSteps": [
+        "Attach oral rehydration salt (ORS) pouch to the Potable Water Dispenser septum.",
+        "Dispense 400 mL of ambient water and massage pouch for 20 seconds to dissolve solutes.",
+        "Consume steadily over 10 minutes to restore intravascular plasma volume."
+      ]
+    },
+    {
+      "fileId": "guide_space_glucometer",
+      "title": "Capillary Blood Sampling in Microgravity & Circadian Lighting",
+      "durationSec": 40,
+      "equipmentLocation": "Ambulatory Medical Pack (AMP) - Pouch 3",
+      "fallbackSteps": [
+        "Ingest one 15g fast-acting glucose gel packet immediately.",
+        "Wipe ring finger with alcohol swab; allow to air dry completely so droplet remains spherical in 0G.",
+        "Touch test strip tip directly to the surface tension bead without smearing."
+      ]
+    },
+    {
+      "fileId": "guide_ared_resistive_load",
+      "title": "ARED Vacuum Cylinder Calibration & Lower-Body Negative Pressure",
+      "durationSec": 50,
+      "equipmentLocation": "Tranquility Node 3 - ARED Platform",
+      "fallbackSteps": [
+        "Engage ARED flywheel and vacuum canisters to 75% Earth body-weight equivalent.",
+        "Perform 3 sets of heel raises and squats with telemetry harness active.",
+        "Log completion in Daily Countermeasures to restore musculoskeletal readiness."
+      ]
+    }
+  ]
+}

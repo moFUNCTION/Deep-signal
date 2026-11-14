@@ -1,0 +1,41 @@
+{
+  "name": "astronaut-hud",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173",
+    "build": "tsc && vite build",
+    "preview": "vite preview --port 5173",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aura/appwrite-client": "*",
+    "@aura/medical-engine": "*",
+    "@aura/ui-kit": "*",
+    "@react-three/drei": "^9.106.0",
+    "@react-three/fiber": "^8.16.8",
+    "idb-keyval": "^6.2.1",
+    "jspdf": "^2.5.1",
+    "lucide-react": "^0.378.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.7",
+    "three": "^0.160.0",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@types/three": "^0.160.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.5.4",
+    "vite": "^5.2.10"
+  }
+}

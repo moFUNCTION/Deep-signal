@@ -1,10 +1,13 @@
 {
-  "name": "with-vite",
+  "name": "aura-space-monorepo",
   "private": true,
   "scripts": {
+    "dev": "turbo run dev --parallel",
     "build": "turbo run build",
-    "dev": "turbo run dev",
     "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "provision:appwrite": "node appwrite/scripts/provision-appwrite.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
@@ -13,7 +16,7 @@
     "turbo": "^2.11.11"
   },
   "engines": {
-    "node": ">=24.20.0"
+    "node": ">=20.0.0"
   },
   "devEngines": {
     "packageManager": {

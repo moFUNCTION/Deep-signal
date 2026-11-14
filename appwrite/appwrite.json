@@ -1,0 +1,578 @@
+{
+  "projectId": "aura_nasa_2026",
+  "projectName": "AURA - Autonomous Unified Recovery & Assessment",
+  "endpoint": "https://cloud.appwrite.io/v1",
+  "teams": [
+    {
+      "$id": "astronaut_crew",
+      "name": "Astronaut Crew Members"
+    },
+    {
+      "$id": "flight_surgeons",
+      "name": "NASA Earth Flight Surgeons"
+    }
+  ],
+  "databases": [
+    {
+      "$id": "AURA_Medical_DB",
+      "name": "AURA_Medical_DB",
+      "enabled": true,
+      "collections": [
+        {
+          "$id": "vitals_logs",
+          "name": "vitals_logs",
+          "enabled": true,
+          "documentSecurity": true,
+          "permissions": [
+            "read(\"any\")",
+            "read(\"users\")",
+            "read(\"team:flight_surgeons\")",
+            "read(\"team:astronaut_crew\")",
+            "create(\"any\")",
+            "create(\"users\")",
+            "create(\"team:astronaut_crew\")",
+            "update(\"users\")",
+            "update(\"team:flight_surgeons\")",
+            "delete(\"team:flight_surgeons\")"
+          ],
+          "attributes": [
+            {
+              "key": "astronaut_id",
+              "type": "string",
+              "size": 36,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "mission_phase",
+              "type": "string",
+              "format": "enum",
+              "elements": [
+                "PRE_FLIGHT_BDC",
+                "LAUNCH_ASCENT",
+                "EARLY_ORBIT_ADAPTATION",
+                "DEEP_SPACE_CRUISE"
+              ],
+              "required": true,
+              "default": "DEEP_SPACE_CRUISE",
+              "array": false
+            },
+            {
+              "key": "heart_rate",
+              "type": "integer",
+              "min": 20,
+              "max": 240,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "bp_systolic",
+              "type": "integer",
+              "min": 50,
+              "max": 250,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "bp_diastolic",
+              "type": "integer",
+              "min": 30,
+              "max": 160,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "blood_glucose",
+              "type": "double",
+              "min": 20.0,
+              "max": 500.0,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "body_temp",
+              "type": "double",
+              "min": 32.0,
+              "max": 43.0,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "spo2",
+              "type": "integer",
+              "min": 50,
+              "max": 100,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "sleep_hours",
+              "type": "double",
+              "min": 0.0,
+              "max": 24.0,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "mood_score",
+              "type": "integer",
+              "min": 1,
+              "max": 10,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "cabin_co2_mmhg",
+              "type": "double",
+              "min": 0.0,
+              "max": 30.0,
+              "required": true,
+              "default": 2.4,
+              "array": false
+            },
+            {
+              "key": "cabin_radiation_msv",
+              "type": "double",
+              "min": 0.0,
+              "max": 50.0,
+              "required": true,
+              "default": 0.3,
+              "array": false
+            },
+            {
+              "key": "ingestion_source",
+              "type": "string",
+              "format": "enum",
+              "elements": [
+                "LIVE_STREAM",
+                "OFFLINE_SYNC_FLUSH"
+              ],
+              "required": false,
+              "default": "LIVE_STREAM",
+              "array": false
+            },
+            {
+              "key": "edge_alert_id",
+              "type": "string",
+              "size": 36,
+              "required": false,
+              "default": null,
+              "array": false
+            }
+          ],
+          "indexes": [
+            {
+              "key": "idx_astronaut_latest",
+              "type": "key",
+              "attributes": [
+                "astronaut_id",
+                "$createdAt"
+              ],
+              "orders": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          ]
+        },
+        {
+          "$id": "triage_alerts",
+          "name": "triage_alerts",
+          "enabled": true,
+          "documentSecurity": true,
+          "permissions": [
+            "read(\"any\")",
+            "read(\"users\")",
+            "read(\"team:flight_surgeons\")",
+            "read(\"team:astronaut_crew\")",
+            "create(\"any\")",
+            "create(\"users\")",
+            "create(\"team:flight_surgeons\")",
+            "update(\"any\")",
+            "update(\"users\")",
+            "update(\"team:astronaut_crew\")",
+            "update(\"team:flight_surgeons\")",
+            "delete(\"team:flight_surgeons\")"
+          ],
+          "attributes": [
+            {
+              "key": "astronaut_id",
+              "type": "string",
+              "size": 36,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "vital_log_id",
+              "type": "string",
+              "size": 36,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "affected_system",
+              "type": "string",
+              "format": "enum",
+              "elements": [
+                "nominal",
+                "cardiovascular",
+                "nervous",
+                "metabolic",
+                "musculoskeletal"
+              ],
+              "required": true,
+              "default": "nominal",
+              "array": false
+            },
+            {
+              "key": "severity",
+              "type": "string",
+              "format": "enum",
+              "elements": [
+                "green",
+                "yellow",
+                "red"
+              ],
+              "required": true,
+              "default": "green",
+              "array": false
+            },
+            {
+              "key": "diagnosis_code",
+              "type": "string",
+              "size": 64,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "diagnosis_title",
+              "type": "string",
+              "size": 255,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "simple_explanation",
+              "type": "string",
+              "size": 1000,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "action_protocol",
+              "type": "string",
+              "size": 500,
+              "required": true,
+              "array": true
+            },
+            {
+              "key": "guide_file_id",
+              "type": "string",
+              "size": 64,
+              "required": false,
+              "default": null,
+              "array": false
+            },
+            {
+              "key": "notify_earth",
+              "type": "boolean",
+              "required": true,
+              "default": false,
+              "array": false
+            },
+            {
+              "key": "is_resolved",
+              "type": "boolean",
+              "required": true,
+              "default": false,
+              "array": false
+            }
+          ],
+          "indexes": [
+            {
+              "key": "idx_astronaut_alerts",
+              "type": "key",
+              "attributes": [
+                "astronaut_id",
+                "is_resolved",
+                "$createdAt"
+              ],
+              "orders": [
+                "ASC",
+                "ASC",
+                "DESC"
+              ]
+            }
+          ]
+        },
+        {
+          "$id": "daily_missions",
+          "name": "daily_missions",
+          "enabled": true,
+          "documentSecurity": true,
+          "permissions": [
+            "read(\"any\")",
+            "read(\"users\")",
+            "read(\"team:astronaut_crew\")",
+            "read(\"team:flight_surgeons\")",
+            "create(\"users\")",
+            "create(\"team:flight_surgeons\")",
+            "update(\"any\")",
+            "update(\"users\")",
+            "update(\"team:astronaut_crew\")",
+            "update(\"team:flight_surgeons\")",
+            "delete(\"team:flight_surgeons\")"
+          ],
+          "attributes": [
+            {
+              "key": "astronaut_id",
+              "type": "string",
+              "size": 36,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "task_code",
+              "type": "string",
+              "size": 64,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "task_title",
+              "type": "string",
+              "size": 255,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "target_system",
+              "type": "string",
+              "size": 64,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "points_value",
+              "type": "integer",
+              "min": 5,
+              "max": 100,
+              "required": true,
+              "default": 25,
+              "array": false
+            },
+            {
+              "key": "is_completed",
+              "type": "boolean",
+              "required": true,
+              "default": false,
+              "array": false
+            },
+            {
+              "key": "streak_days",
+              "type": "integer",
+              "min": 0,
+              "max": 1000,
+              "required": true,
+              "default": 1,
+              "array": false
+            }
+          ],
+          "indexes": [
+            {
+              "key": "idx_astronaut_missions",
+              "type": "key",
+              "attributes": [
+                "astronaut_id",
+                "task_code"
+              ],
+              "orders": [
+                "ASC",
+                "ASC"
+              ]
+            }
+          ]
+        },
+        {
+          "$id": "earth_transmissions",
+          "name": "earth_transmissions",
+          "enabled": true,
+          "documentSecurity": true,
+          "permissions": [
+            "read(\"any\")",
+            "read(\"users\")",
+            "read(\"team:flight_surgeons\")",
+            "read(\"team:astronaut_crew\")",
+            "create(\"any\")",
+            "create(\"users\")",
+            "create(\"team:astronaut_crew\")",
+            "update(\"any\")",
+            "update(\"users\")",
+            "update(\"team:flight_surgeons\")",
+            "delete(\"team:flight_surgeons\")"
+          ],
+          "attributes": [
+            {
+              "key": "astronaut_id",
+              "type": "string",
+              "size": 36,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "alert_id",
+              "type": "string",
+              "size": 36,
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "distance_mode",
+              "type": "string",
+              "format": "enum",
+              "elements": [
+                "ISS_REALTIME",
+                "MOON_2S",
+                "MARS_15M",
+                "SOLAR_BLACKOUT"
+              ],
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "delay_seconds",
+              "type": "integer",
+              "min": 0,
+              "max": 3600,
+              "required": true,
+              "default": 0,
+              "array": false
+            },
+            {
+              "key": "status",
+              "type": "string",
+              "format": "enum",
+              "elements": [
+                "queued_offline",
+                "transmitting",
+                "received_by_earth"
+              ],
+              "required": true,
+              "array": false
+            },
+            {
+              "key": "report_file_id",
+              "type": "string",
+              "size": 64,
+              "required": false,
+              "default": null,
+              "array": false
+            },
+            {
+              "key": "telemetry_json",
+              "type": "string",
+              "size": 5000,
+              "required": true,
+              "array": false
+            }
+          ],
+          "indexes": [
+            {
+              "key": "idx_astronaut_transmissions",
+              "type": "key",
+              "attributes": [
+                "astronaut_id",
+                "status",
+                "$createdAt"
+              ],
+              "orders": [
+                "ASC",
+                "ASC",
+                "DESC"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "buckets": [
+    {
+      "$id": "medical_guides",
+      "name": "Space Medical Visual Guides",
+      "enabled": true,
+      "fileSecurity": false,
+      "maximumFileSize": 52428800,
+      "allowedFileExtensions": [
+        "png",
+        "jpg",
+        "jpeg",
+        "svg",
+        "webp",
+        "mp4",
+        "pdf",
+        "json"
+      ],
+      "compression": "gzip",
+      "encryption": true,
+      "antivirus": true,
+      "permissions": [
+        "read(\"any\")",
+        "read(\"users\")",
+        "create(\"team:flight_surgeons\")",
+        "update(\"team:flight_surgeons\")",
+        "delete(\"team:flight_surgeons\")"
+      ]
+    },
+    {
+      "$id": "earth_reports",
+      "name": "Earth Telemetry PDF Dossiers",
+      "enabled": true,
+      "fileSecurity": true,
+      "maximumFileSize": 26214400,
+      "allowedFileExtensions": [
+        "pdf",
+        "json"
+      ],
+      "compression": "gzip",
+      "encryption": true,
+      "antivirus": true,
+      "permissions": [
+        "read(\"any\")",
+        "read(\"users\")",
+        "read(\"team:flight_surgeons\")",
+        "create(\"any\")",
+        "create(\"users\")",
+        "create(\"team:astronaut_crew\")",
+        "update(\"team:flight_surgeons\")",
+        "delete(\"team:flight_surgeons\")"
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "$id": "triage-cloud-fn",
+      "name": "Autonomous Space Medical Triage Engine",
+      "runtime": "node-21.0",
+      "path": "appwrite/functions/triage-cloud-fn",
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "execute": [
+        "any",
+        "users"
+      ],
+      "events": [
+        "databases.AURA_Medical_DB.collections.vitals_logs.documents.*.create"
+      ],
+      "timeout": 15,
+      "logging": true,
+      "scopes": [
+        "databases.read",
+        "databases.write",
+        "users.read",
+        "storage.read",
+        "storage.write"
+      ]
+    }
+  ]
+}

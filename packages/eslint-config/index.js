@@ -11,7 +11,7 @@ module.exports = tseslint.config(
   ...tseslint.configs.recommended,
   eslintConfigPrettier,
   {
-    files: ["**/*.ts"],
+    files: ["**/*.{ts,tsx}"],
     languageOptions: {
       globals: globals.browser,
     },
