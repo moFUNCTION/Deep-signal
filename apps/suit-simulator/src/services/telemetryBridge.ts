@@ -129,7 +129,14 @@ class TelemetryBridge {
     const raw = localStorage.getItem(LOCAL_PREFS_KEY);
     if (raw) {
       try {
-        return JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        const unwrapped = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+        if (unwrapped && typeof unwrapped === 'object' && !Array.isArray(unwrapped)) {
+          if (typeof parsed === 'string') {
+            safeLocalStorageSet(LOCAL_PREFS_KEY, unwrapped);
+          }
+          return unwrapped;
+        }
       } catch {
         // fallback
       }
@@ -142,7 +149,14 @@ class TelemetryBridge {
     const raw = localStorage.getItem(LOCAL_MISSIONS_KEY);
     if (raw) {
       try {
-        return JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        const unwrapped = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+        if (Array.isArray(unwrapped)) {
+          if (typeof parsed === 'string') {
+            safeLocalStorageSet(LOCAL_MISSIONS_KEY, unwrapped);
+          }
+          return unwrapped;
+        }
       } catch {
         // fallback
       }
@@ -324,7 +338,7 @@ class TelemetryBridge {
       ]);
 
       if (missions && missions.length > 0) {
-        safeLocalStorageSet(LOCAL_MISSIONS_KEY, JSON.stringify(missions));
+        safeLocalStorageSet(LOCAL_MISSIONS_KEY, missions);
         this.notifyListeners({ type: 'MISSIONS_UPDATED', payload: missions });
       }
 
@@ -355,7 +369,7 @@ class TelemetryBridge {
           earthBaselines,
           missionPhase,
         };
-        safeLocalStorageSet(LOCAL_PREFS_KEY, JSON.stringify(nextProfile));
+        safeLocalStorageSet(LOCAL_PREFS_KEY, nextProfile);
         this.notifyListeners({ type: 'PREFS_UPDATED', payload: nextProfile });
       }
 
