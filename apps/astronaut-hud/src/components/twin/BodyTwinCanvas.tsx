@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Body, { type ExtendedBodyPart, type Slug } from '@mjcdev/react-body-highlighter';
 import {
   Activity,
@@ -109,6 +109,26 @@ export const BodyTwinCanvas: React.FC<BodyTwinCanvasProps> = ({
 
   const [viewSide, setViewSide] = useState<'both' | 'front' | 'back'>('both');
   const [gender, setGender] = useState<'male' | 'female'>('male');
+  const [isCompactViewport, setIsCompactViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 640 : false,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(max-width: 639px)');
+    const update = () => setIsCompactViewport(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  const bodyScale = isCompactViewport
+    ? viewSide === 'both'
+      ? 0.68
+      : 0.92
+    : viewSide === 'both'
+    ? 0.92
+    : 1.15;
 
   const evals = useMemo(
     () =>
@@ -296,9 +316,9 @@ export const BodyTwinCanvas: React.FC<BodyTwinCanvasProps> = ({
       </div>
 
       {/* Main Anatomical Visualizer (@mjcdev/react-body-highlighter) */}
-      <div className="flex-1 px-4 py-4 bg-surface/30 flex flex-col items-center justify-center min-h-[300px]">
+      <div className="flex-1 px-2.5 sm:px-4 py-3 sm:py-4 bg-surface/30 flex flex-col items-center justify-center min-h-[260px] sm:min-h-[300px] overflow-hidden">
         <div
-          className={`w-full flex items-center justify-center gap-4 sm:gap-8 ${
+          className={`w-full flex items-center justify-center gap-2 sm:gap-8 ${
             viewSide === 'both' ? 'flex-row flex-wrap sm:flex-nowrap' : 'flex-col'
           }`}
         >
@@ -312,7 +332,7 @@ export const BodyTwinCanvas: React.FC<BodyTwinCanvasProps> = ({
                   data={bodyData}
                   gender={gender}
                   side="front"
-                  scale={viewSide === 'both' ? 0.92 : 1.15}
+                  scale={bodyScale}
                   border={highContrast ? '#0F172A' : '#CBD5E1'}
                   colors={highlightColors}
                   onBodyPartClick={handleBodyPartClick}
@@ -331,7 +351,7 @@ export const BodyTwinCanvas: React.FC<BodyTwinCanvasProps> = ({
                   data={bodyData}
                   gender={gender}
                   side="back"
-                  scale={viewSide === 'both' ? 0.92 : 1.15}
+                  scale={bodyScale}
                   border={highContrast ? '#0F172A' : '#CBD5E1'}
                   colors={highlightColors}
                   onBodyPartClick={handleBodyPartClick}
@@ -342,7 +362,7 @@ export const BodyTwinCanvas: React.FC<BodyTwinCanvasProps> = ({
         </div>
 
         {/* Semantic Legend */}
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-[11px] font-body text-ink-muted">
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-[11px] font-body text-ink-muted">
           <span className="inline-flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#DBEAFE] border border-sky/40" />
             Nominal
@@ -392,7 +412,7 @@ export const BodyTwinCanvas: React.FC<BodyTwinCanvasProps> = ({
       )}
 
       {/* 4 Interactive System Selector Cards */}
-      <div className="p-4 border-t border-outline bg-surface-elevated grid grid-cols-2 gap-2.5">
+      <div className="p-3 sm:p-4 border-t border-outline bg-surface-elevated grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {SYSTEMS_META.map((sys) => {
           const Icon = sys.icon;
           const sev = systemSeverity[sys.id];

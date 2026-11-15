@@ -78,8 +78,8 @@ export const EmergencyProtocolCard: React.FC = () => {
     activeAlert.affected_system === 'nominal'
   ) {
     return (
-      <div className="w-full rounded-card bg-surface-elevated border border-leaf/40 px-5 py-3.5 shadow-card flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="w-full rounded-card bg-surface-elevated border border-leaf/40 px-4 sm:px-5 py-3.5 shadow-card flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="w-10 h-10 rounded-btn bg-leaf-soft text-leaf-deep flex items-center justify-center shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
@@ -90,7 +90,7 @@ export const EmergencyProtocolCard: React.FC = () => {
                 Baseline Sync: {profile.missionPhase.replace(/_/g, ' ')}
               </span>
             </div>
-            <p className="text-ink-muted text-xs sm:text-sm font-body mt-0.5 truncate">
+            <p className="text-ink-muted text-xs sm:text-sm font-body mt-0.5 leading-snug">
               All biometric and cabin parameters sit within phase-adjusted personal bounds.
             </p>
           </div>
@@ -199,15 +199,15 @@ export const EmergencyProtocolCard: React.FC = () => {
       </div>
 
       {/* Action Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-outline">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3 pt-4 border-t border-outline">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           {activeAlert.guide_file_id && (
             <BigFriendlyButton
               variant="secondary"
               onClick={() => openVisualGuide(activeAlert.guide_file_id!)}
-              className="!min-h-[52px] !py-2.5 !px-5 text-sm inline-flex items-center gap-2"
+              className="!min-h-[48px] !py-2.5 !px-4 sm:!px-5 text-sm inline-flex items-center justify-center gap-2 w-full sm:w-auto"
             >
-              <BookOpen className="w-4 h-4" />
+              <BookOpen className="w-4 h-4 shrink-0" />
               <span>Open Visual Procedure Guide</span>
             </BigFriendlyButton>
           )}
@@ -216,26 +216,26 @@ export const EmergencyProtocolCard: React.FC = () => {
             variant="primary"
             onClick={handleTransmitPdf}
             disabled={isTransmitting}
-            className="!min-h-[52px] !py-2.5 !px-5 text-sm inline-flex items-center gap-2"
+            className="!min-h-[48px] !py-2.5 !px-4 sm:!px-5 text-sm inline-flex items-center justify-center gap-2 w-full sm:w-auto"
           >
             {isTransmitting ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                 <span>Generating Dossier...</span>
               </>
             ) : (
               <>
-                <FileText className="w-4 h-4" />
+                <FileText className="w-4 h-4 shrink-0" />
                 <span>Download &amp; Send Clinical PDF</span>
               </>
             )}
           </BigFriendlyButton>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           {transmissionSuccess && (
             <span className="text-xs font-mono text-leaf-deep font-semibold inline-flex items-center gap-1">
-              <Check className="w-3.5 h-3.5" />
+              <Check className="w-3.5 h-3.5 shrink-0" />
               {transmissionSuccess}
             </span>
           )}
@@ -243,9 +243,9 @@ export const EmergencyProtocolCard: React.FC = () => {
           <BigFriendlyButton
             variant={allStepsDone ? 'primary' : 'secondary'}
             onClick={() => resolveActiveAlert()}
-            className="!min-h-[52px] !py-2.5 !px-5 text-sm inline-flex items-center gap-2"
+            className="!min-h-[48px] !py-2.5 !px-4 sm:!px-5 text-sm inline-flex items-center justify-center gap-2 w-full sm:w-auto"
           >
-            {allStepsDone && <Check className="w-4 h-4" />}
+            {allStepsDone && <Check className="w-4 h-4 shrink-0" />}
             <span>{allStepsDone ? 'Protocol Complete — Resolve Advisory' : 'Dismiss Advisory'}</span>
           </BigFriendlyButton>
         </div>

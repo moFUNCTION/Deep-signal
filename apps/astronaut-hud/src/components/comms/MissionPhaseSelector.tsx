@@ -32,13 +32,13 @@ export const MissionPhaseSelector: React.FC = () => {
   const isBlackout = commsMode === 'SOLAR_BLACKOUT';
 
   return (
-    <div className="flex flex-wrap items-center gap-2.5">
+    <div className="w-full xl:w-auto grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 sm:gap-2.5">
       {/* Mission Phase Selector */}
-      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-sunken rounded-input border border-outline">
+      <div className="w-full sm:w-auto flex items-center gap-2 px-3 py-2 sm:py-1.5 bg-surface-sunken rounded-input border border-outline min-w-0">
         <Orbit className="w-4 h-4 text-sky-deep shrink-0" />
         <label
           htmlFor={phaseSelectId}
-          className="text-[11px] font-mono font-bold text-ink-muted uppercase"
+          className="text-[11px] font-mono font-bold text-ink-muted uppercase shrink-0"
         >
           Phase
         </label>
@@ -46,7 +46,7 @@ export const MissionPhaseSelector: React.FC = () => {
           id={phaseSelectId}
           value={missionPhase}
           onChange={(e) => void setMissionPhase(e.target.value as MissionPhase)}
-          className="bg-transparent text-xs font-body font-bold text-ink focus:outline-none cursor-pointer pr-1"
+          className="bg-transparent text-xs font-body font-bold text-ink focus:outline-none cursor-pointer pr-1 flex-1 min-w-0 truncate"
         >
           {PHASES.map((p) => (
             <option key={p.id} value={p.id}>
@@ -58,7 +58,7 @@ export const MissionPhaseSelector: React.FC = () => {
 
       {/* DTN Comms Mode Selector */}
       <div
-        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-input border transition-colors ${
+        className={`w-full sm:w-auto flex items-center gap-2 px-3 py-2 sm:py-1.5 rounded-input border transition-colors min-w-0 ${
           isBlackout
             ? 'bg-coral-soft/60 border-coral text-ink'
             : 'bg-surface-sunken border-outline text-ink'
@@ -67,7 +67,7 @@ export const MissionPhaseSelector: React.FC = () => {
         <Globe className={`w-4 h-4 shrink-0 ${isBlackout ? 'text-coral' : 'text-leaf-deep'}`} />
         <label
           htmlFor={commsSelectId}
-          className="text-[11px] font-mono font-bold text-ink-muted uppercase"
+          className="text-[11px] font-mono font-bold text-ink-muted uppercase shrink-0"
         >
           Link
         </label>
@@ -75,7 +75,7 @@ export const MissionPhaseSelector: React.FC = () => {
           id={commsSelectId}
           value={commsMode}
           onChange={(e) => setCommsMode(e.target.value as DistanceCommsMode)}
-          className="bg-transparent text-xs font-body font-bold text-ink focus:outline-none cursor-pointer pr-1"
+          className="bg-transparent text-xs font-body font-bold text-ink focus:outline-none cursor-pointer pr-1 flex-1 min-w-0 truncate"
         >
           {COMMS_MODES.map((m) => (
             <option key={m.id} value={m.id}>

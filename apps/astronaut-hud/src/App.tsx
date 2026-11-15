@@ -36,17 +36,17 @@ export const App: React.FC = () => {
       } ${reducedMotion ? 'reduced-motion' : ''}`}
     >
       {/* 1. TOP NAVIGATION HEADER */}
-      <header className="sticky top-0 z-40 bg-surface-elevated/95 backdrop-blur-md border-b border-outline px-4 lg:px-8 py-3">
-        <div className="max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-3">
+      <header className="sm:sticky sm:top-0 z-40 bg-surface-elevated/95 backdrop-blur-md border-b border-outline px-3 sm:px-4 lg:px-8 py-2.5 sm:py-3">
+        <div className="max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
           {/* Logo & Brand */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div
-              className="w-10 h-10 rounded-btn bg-sky flex items-center justify-center text-white shadow-sm shrink-0"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-btn bg-sky flex items-center justify-center text-white shadow-sm shrink-0"
               aria-hidden="true"
             >
               <svg
-                width="22"
-                height="22"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -57,16 +57,16 @@ export const App: React.FC = () => {
                 <path d="M3 12h4l3-7 4 14 3-7h4" />
               </svg>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-display font-extrabold text-lg tracking-tight text-ink">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h1 className="font-display font-extrabold text-base sm:text-lg tracking-tight text-ink">
                   AURA Crew Health HUD
                 </h1>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-pill bg-sky-soft text-sky-deep font-bold">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-pill bg-sky-soft text-sky-deep font-bold shrink-0">
                   SOL-142
                 </span>
               </div>
-              <p className="text-xs font-body text-ink-muted -mt-0.5">
+              <p className="text-[11px] sm:text-xs font-body text-ink-muted -mt-0.5 truncate">
                 Autonomous Recovery &amp; Assessment System
               </p>
             </div>
@@ -81,15 +81,15 @@ export const App: React.FC = () => {
           </div>
 
           {/* Right: Crew Profile, Focus Guide & Mode Switcher */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2.5 pr-3 border-r border-outline">
+          <div className="w-full xl:w-auto flex items-center justify-between sm:justify-end gap-2 sm:gap-3 flex-wrap">
+            <div className="flex items-center gap-2 pr-0 sm:pr-3 sm:border-r border-outline">
               <AstronautAvatar
                 name={profile.fullName}
                 callsign={profile.astronautCode}
                 size="sm"
                 status={activeAlert ? activeAlert.severity : 'nominal'}
               />
-              <div className="hidden sm:flex flex-col text-left">
+              <div className="flex flex-col text-left">
                 <span className="font-display font-bold text-xs text-ink leading-tight">
                   {profile.fullName}
                 </span>
@@ -99,32 +99,34 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            <HudFocusTour />
-            <a
-              href="https://suit-simulator.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3.5 py-2 rounded-pill bg-sky text-white text-xs font-body font-bold shadow-sm hover:bg-sky-deep transition-all inline-flex items-center gap-1.5"
-              title="Open Suit Telemetry Simulator"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>Suit Simulator</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-            <ViewModeSwitcher compact={false} />
+            <div className="flex items-center gap-2 flex-wrap">
+              <HudFocusTour />
+              <a
+                href="https://suit-simulator.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 sm:px-3.5 py-2 rounded-pill bg-sky text-white text-xs font-body font-bold shadow-sm hover:bg-sky-deep transition-all inline-flex items-center gap-1.5"
+                title="Open Suit Telemetry Simulator"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                <span>Suit Simulator</span>
+                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+              </a>
+            </div>
+            <ViewModeSwitcher compact={false} className="w-full sm:w-auto" />
           </div>
         </div>
       </header>
 
       {/* 2. MAIN WORKSPACE CONTAINER */}
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 lg:px-8 py-6 flex flex-col gap-6">
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 flex flex-col gap-4 sm:gap-6">
         {/* Zone 1: Status Strip / Active Emergency Protocol */}
         <section aria-label="Clinical Protocol Advisory" data-tour="hud-triage-banner">
           <EmergencyProtocolCard />
         </section>
 
         {/* Zone 2: Anatomical Health Twin + Mission Readiness & Countermeasures */}
-        <section className="grid grid-cols-12 gap-6 items-stretch">
+        <section className="grid grid-cols-12 gap-4 sm:gap-6 items-stretch">
           <div className="col-span-12 lg:col-span-5 flex flex-col" data-tour="hud-body-twin">
             <BodyTwinCanvas
               selectedSystem={selectedSystem}

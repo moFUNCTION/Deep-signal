@@ -50,7 +50,7 @@ export const ReadinessGauge: React.FC = () => {
     <div className="w-full">
       <HudCard padding="20px" className="flex flex-col justify-between">
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-start sm:items-center justify-between gap-2 mb-3">
           <div>
             <h3 className="font-display font-bold text-base text-ink">
               Mission Readiness Index
@@ -65,9 +65,9 @@ export const ReadinessGauge: React.FC = () => {
         </div>
 
         {/* Circular Dial & Breakdown Row */}
-        <div className="flex items-center justify-around gap-4 py-2">
+        <div className="flex flex-col sm:flex-row items-center sm:justify-around gap-4 py-2">
           {/* Circular SVG Gauge */}
-          <div className="relative w-32 h-32 flex items-center justify-center">
+          <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 flex items-center justify-center">
             <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 130 130">
               {/* Track */}
               <circle
@@ -103,7 +103,7 @@ export const ReadinessGauge: React.FC = () => {
           </div>
 
           {/* Points Breakdown Pills */}
-          <div className="flex flex-col gap-2 flex-1">
+          <div className="flex flex-col gap-2 w-full flex-1 min-w-0">
             <div className="flex justify-between items-center text-xs p-2 rounded-btn bg-surface border border-outline">
               <span className="text-ink font-body">Biometric Vitals</span>
               <span className="font-mono font-bold text-ink">{weightedVitals} / 50</span>

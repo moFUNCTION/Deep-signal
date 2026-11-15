@@ -316,16 +316,16 @@ export const TelemetrySliders: React.FC<TelemetrySlidersProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="text-right hidden sm:block">
-            <span className="text-xs text-ink-subtle font-mono block">PACKETS SENT</span>
+        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 w-full sm:w-auto">
+          <div className="text-left sm:text-right">
+            <span className="text-[10px] sm:text-xs text-ink-subtle font-mono block">PACKETS SENT</span>
             <span className="text-sm font-mono font-bold text-ink">{packetCount}</span>
           </div>
 
           <button
             type="button"
             onClick={() => onToggleStreaming(!isStreaming)}
-            className={`px-4 py-2.5 rounded-btn text-xs font-semibold font-body tracking-wide transition-all duration-150 flex items-center gap-2 ${
+            className={`flex-1 sm:flex-initial justify-center px-4 py-2.5 rounded-btn text-xs font-semibold font-body tracking-wide transition-all duration-150 flex items-center gap-2 ${
               isStreaming
                 ? 'bg-coral-soft text-coral border border-coral/30 hover:bg-coral/20'
                 : 'bg-leaf hover:bg-leaf-deep text-white shadow-sm'
@@ -396,7 +396,7 @@ export const TelemetrySliders: React.FC<TelemetrySlidersProps> = ({
               </div>
 
               {/* Slider & Value Row */}
-              <div className="flex items-center gap-4 my-2">
+              <div className="flex items-center gap-3 sm:gap-4 my-2 min-w-0">
                 <input
                   id={`telemetry-slider-${metric.key}`}
                   name={`telemetry-slider-${metric.key}`}
@@ -409,9 +409,9 @@ export const TelemetrySliders: React.FC<TelemetrySlidersProps> = ({
                   onChange={(e) =>
                     handleSliderChange(metric.key, parseFloat(e.target.value))
                   }
-                  className="flex-1"
+                  className="flex-1 min-w-0 min-h-[28px]"
                 />
-                <div className="w-20 text-right">
+                <div className="w-16 sm:w-20 shrink-0 text-right">
                   <span className="text-lg font-mono font-bold text-ink tracking-tight">
                     {typeof val === 'number' && metric.step < 1
                       ? val.toFixed(1)

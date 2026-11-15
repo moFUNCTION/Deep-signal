@@ -89,10 +89,10 @@ export const BaselineTrendChart: React.FC = () => {
   return (
     <HudCard padding="20px" className="w-full h-full flex flex-col justify-between">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-3 sm:mb-4">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-display font-bold text-base text-ink">
+            <h3 className="font-display font-bold text-sm sm:text-base text-ink">
               {metricLabel} · Physiological Envelope
             </h3>
             <span className="text-xs px-2.5 py-0.5 rounded-pill bg-sky-soft text-sky-deep font-mono font-semibold">
@@ -107,7 +107,7 @@ export const BaselineTrendChart: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <label htmlFor="trend-metric-select" className="sr-only">
             Select metric to plot
           </label>
@@ -115,7 +115,7 @@ export const BaselineTrendChart: React.FC = () => {
             id="trend-metric-select"
             value={selectedMetric}
             onChange={(e) => setSelectedMetric(e.target.value as MetricKey)}
-            className="px-2.5 py-1.5 rounded-input bg-surface-sunken border border-outline text-xs font-body font-semibold text-ink focus:border-sky outline-none"
+            className="w-full sm:w-auto px-2.5 py-1.5 rounded-input bg-surface-sunken border border-outline text-xs font-body font-semibold text-ink focus:border-sky outline-none"
           >
             {METRIC_OPTIONS.map((opt) => (
               <option key={opt.key} value={opt.key}>
@@ -156,9 +156,9 @@ export const BaselineTrendChart: React.FC = () => {
       )}
 
       {/* Chart Container */}
-      <div className="w-full h-[250px]">
+      <div className="w-full h-[220px] sm:h-[250px] min-w-0">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 12, right: 44, left: -10, bottom: 0 }}>
+          <ComposedChart data={chartData} margin={{ top: 12, right: 24, left: -16, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
             <XAxis dataKey="time" stroke="#94A3B8" fontSize={11} tickLine={false} />
             <YAxis domain={yDomain} stroke="#94A3B8" fontSize={11} tickLine={false} />

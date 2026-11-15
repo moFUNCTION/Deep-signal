@@ -98,7 +98,7 @@ export const DailyCountermeasures: React.FC = () => {
         </div>
 
         {/* Interactive Countermeasure Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {dailyMissions.map((mission) => (
             <LessonCard
               key={mission.$id || mission.task_code}

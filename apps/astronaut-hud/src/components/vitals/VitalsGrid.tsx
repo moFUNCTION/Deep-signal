@@ -70,7 +70,7 @@ export const VitalsGrid: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
         {METRICS_META.map((meta) => {
           const Icon = meta.icon;
           const evalResult = evals[meta.key];
@@ -129,7 +129,7 @@ export const VitalsGrid: React.FC = () => {
 
                   {/* Primary Value in JetBrains Mono */}
                   <div className="flex items-baseline gap-1.5 my-1">
-                    <span className="font-mono text-2xl font-bold text-ink tracking-tight tabular-nums">
+                    <span className="font-mono text-xl sm:text-2xl font-bold text-ink tracking-tight tabular-nums">
                       {typeof displayVal === 'number' && displayVal % 1 !== 0
                         ? displayVal.toFixed(displayVal < 10 ? 2 : 1)
                         : displayVal}

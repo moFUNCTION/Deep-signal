@@ -177,40 +177,40 @@ export const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-surface flex flex-col justify-between text-ink">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-30 bg-surface-elevated/95 backdrop-blur-md border-b border-outline px-4 lg:px-8 py-3">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <header className="sm:sticky sm:top-0 z-30 bg-surface-elevated/95 backdrop-blur-md border-b border-outline px-3 sm:px-4 lg:px-8 py-2.5 sm:py-3">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
           {/* Brand */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div
-              className="w-10 h-10 rounded-btn bg-sky text-white flex items-center justify-center shadow-sm shrink-0"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-btn bg-sky text-white flex items-center justify-center shadow-sm shrink-0"
               aria-hidden="true"
             >
               <Activity className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-display font-extrabold tracking-tight text-ink">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h1 className="text-base sm:text-lg font-display font-extrabold tracking-tight text-ink">
                   AURA Suit Telemetry Simulator
                 </h1>
-                <span className="px-2 py-0.5 rounded-pill text-[10px] font-mono font-bold bg-sky-soft text-sky-deep">
+                <span className="px-2 py-0.5 rounded-pill text-[10px] font-mono font-bold bg-sky-soft text-sky-deep shrink-0">
                   CONTROL CONSOLE
                 </span>
               </div>
-              <p className="text-xs text-ink-muted font-body">
+              <p className="text-[11px] sm:text-xs text-ink-muted font-body truncate">
                 Biometric Injector &amp; Clinical Scenario Verification Deck
               </p>
             </div>
           </div>
 
           {/* Phase, Comms & HUD Link */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="px-2.5 py-1 rounded-input bg-surface-sunken border border-outline text-xs font-mono">
+          <div className="w-full sm:w-auto flex flex-wrap items-center gap-2 sm:gap-2.5">
+            <div className="px-2.5 py-1 rounded-input bg-surface-sunken border border-outline text-[11px] sm:text-xs font-mono">
               <span className="text-ink-muted mr-1">Phase:</span>
               <strong className="text-sky-deep">{missionPhase.replace(/_/g, ' ')}</strong>
             </div>
 
-            <div className="px-2.5 py-1 rounded-input bg-surface-sunken border border-outline text-xs font-mono inline-flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-leaf-deep" />
+            <div className="px-2.5 py-1 rounded-input bg-surface-sunken border border-outline text-[11px] sm:text-xs font-mono inline-flex items-center gap-1.5">
+              <Radio className="w-3.5 h-3.5 text-leaf-deep shrink-0" />
               <strong className="text-ink">{commsMode.replace(/_/g, ' ')}</strong>
             </div>
 
@@ -224,21 +224,21 @@ export const AppContent: React.FC = () => {
               className="px-3 py-1.5 rounded-btn text-xs font-semibold font-body bg-sky hover:bg-sky-deep text-white transition-colors inline-flex items-center gap-1.5"
             >
               <span>Open Astronaut HUD</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <ExternalLink className="w-3.5 h-3.5 shrink-0" />
             </a>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-6 flex-1">
+      <main className="max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 flex-1">
         {/* Always-Visible Predicted Triage Outcome Bar */}
         <section
           data-tour="sim-live-preview"
           aria-label="Live Injected State Preview"
-          className="p-4 rounded-card bg-surface-elevated border border-outline shadow-card flex flex-wrap items-center justify-between gap-4"
+          className="p-3.5 sm:p-4 rounded-card bg-surface-elevated border border-outline shadow-card flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4"
         >
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
             <StatusBadge
               severity={liveTriage.severity}
               label={
@@ -250,11 +250,11 @@ export const AppContent: React.FC = () => {
               }
               size="md"
             />
-            <div>
+            <div className="min-w-0">
               <div className="text-sm font-display font-bold text-ink">
                 {liveTriage.diagnosis_title}
               </div>
-              <div className="text-xs font-mono text-ink-muted">
+              <div className="text-[11px] sm:text-xs font-mono text-ink-muted break-words">
                 Rule: {liveTriage.diagnosis_code} · System: {liveTriage.affected_system.toUpperCase()} · HR {currentValues.heart_rate} bpm · SpO2 {currentValues.spo2}% · CO2 {currentValues.cabin_co2_mmhg} mmHg
               </div>
             </div>
@@ -263,7 +263,7 @@ export const AppContent: React.FC = () => {
           {/* Primary Tab Navigation */}
           <div
             data-tour="sim-tabs"
-            className="inline-flex items-center p-1 rounded-btn bg-surface-sunken border border-outline"
+            className="w-full lg:w-auto grid grid-cols-3 lg:inline-flex items-stretch lg:items-center gap-1 p-1 rounded-btn bg-surface-sunken border border-outline shrink-0"
             role="tablist"
             aria-label="Simulator console sections"
           >
@@ -272,14 +272,14 @@ export const AppContent: React.FC = () => {
               role="tab"
               aria-selected={activeTab === 'scenarios'}
               onClick={() => setActiveTab('scenarios')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-body font-semibold inline-flex items-center gap-1.5 transition-all ${
+              className={`px-2 sm:px-3.5 py-2 rounded-lg text-[11px] sm:text-xs font-body font-semibold inline-flex items-center justify-center gap-1.5 transition-all text-center ${
                 activeTab === 'scenarios'
                   ? 'bg-surface-elevated text-ink shadow-sm'
                   : 'text-ink-muted hover:text-ink'
               }`}
             >
-              <ListChecks className="w-4 h-4" />
-              <span>Test Scenarios (7)</span>
+              <ListChecks className="w-4 h-4 shrink-0 hidden sm:inline" />
+              <span>Scenarios (7)</span>
             </button>
 
             <button
@@ -287,14 +287,14 @@ export const AppContent: React.FC = () => {
               role="tab"
               aria-selected={activeTab === 'sliders'}
               onClick={() => setActiveTab('sliders')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-body font-semibold inline-flex items-center gap-1.5 transition-all ${
+              className={`px-2 sm:px-3.5 py-2 rounded-lg text-[11px] sm:text-xs font-body font-semibold inline-flex items-center justify-center gap-1.5 transition-all text-center ${
                 activeTab === 'sliders'
                   ? 'bg-surface-elevated text-ink shadow-sm'
                   : 'text-ink-muted hover:text-ink'
               }`}
             >
-              <SlidersHorizontal className="w-4 h-4" />
-              <span>Biometric Sliders</span>
+              <SlidersHorizontal className="w-4 h-4 shrink-0 hidden sm:inline" />
+              <span>Sliders</span>
             </button>
 
             <button
@@ -302,14 +302,14 @@ export const AppContent: React.FC = () => {
               role="tab"
               aria-selected={activeTab === 'calibration'}
               onClick={() => setActiveTab('calibration')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-body font-semibold inline-flex items-center gap-1.5 transition-all ${
+              className={`px-2 sm:px-3.5 py-2 rounded-lg text-[11px] sm:text-xs font-body font-semibold inline-flex items-center justify-center gap-1.5 transition-all text-center ${
                 activeTab === 'calibration'
                   ? 'bg-surface-elevated text-ink shadow-sm'
                   : 'text-ink-muted hover:text-ink'
               }`}
             >
-              <Sliders className="w-4 h-4" />
-              <span>Earth BDC Calibration</span>
+              <Sliders className="w-4 h-4 shrink-0 hidden sm:inline" />
+              <span>BDC Calibration</span>
             </button>
           </div>
         </section>
@@ -336,7 +336,7 @@ export const AppContent: React.FC = () => {
           )}
 
           {activeTab === 'calibration' && (
-            <div className="p-6 rounded-card bg-surface-elevated border border-outline shadow-card">
+            <div className="p-4 sm:p-6 rounded-card bg-surface-elevated border border-outline shadow-card">
               <PreFlightCalibrationForm
                 initialBaselines={earthBaselines}
                 initialPhase={missionPhase}
@@ -353,15 +353,15 @@ export const AppContent: React.FC = () => {
       </main>
 
       {/* Footer Status Bar */}
-      <footer className="bg-surface-elevated border-t border-outline px-4 lg:px-8 py-3 text-xs font-mono text-ink-muted">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <footer className="bg-surface-elevated border-t border-outline px-3 sm:px-4 lg:px-8 py-3 text-xs font-mono text-ink-muted">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-leaf" />
             <span>
               Telemetry Relay: <strong className="text-ink">aura_telemetry_bus</strong> [ACTIVE]
             </span>
           </div>
-          <span>Cross-Origin Sync Target: http://localhost:5173</span>
+          <span>Cloud Sync: Appwrite Realtime + Cross-Tab Bus</span>
         </div>
       </footer>
     </div>
